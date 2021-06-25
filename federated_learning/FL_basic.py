@@ -1,0 +1,363 @@
+import copy
+import time
+import os
+import sys
+from collections import OrderedDict
+import numpy as np
+from numpy.random import default_rng
+import argparse
+from pathlib import Path
+import shutil
+from prepare_data import create_client_data, create_client_data_loaders, get_test_data_loader
+from available_models import BasicFCN, BasicCNN
+import json
+from sklearn import metrics
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
+
+
+def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, device):
+    model.train()
+    epoch_training_losses = []
+    for epoch in range(local_epochs):
+        train_loss = 0.0
+        for data, target in data_loader:
+            # move tensors to GPU device if CUDA is available
+            data, target = data.to(device), target.to(device)
+            # clear the gradients of all optimized variables
+            optimizer.zero_grad()
+            # forward pass: compute predicted outputs by passing inputs to the model
+            output = model(data)
+            # calculate the batch loss
+            loss = loss_fn(output, target)
+            # backward pass: compute gradient of the loss with respect to model parameters
+            loss.backward()
+            # perform a single optimization step (parameter update)
+            optimizer.step()
+            # update training loss
+            train_loss += loss.item()
+
+        epoch_train_loss = train_loss / len(data_loader)
+        epoch_training_losses.append(epoch_train_loss)
+        print('Client: {}\t Epoch: {} \tTraining Loss: {:.6f}'.format(idx, epoch, epoch_train_loss))
+    return epoch_training_losses
+
+
+def run_test(model, test_data_loader, loss_fn, device):
+    test_loss = 0.0
+    class_correct = list(0. for i in range(10))
+    class_total = list(0. for i in range(10))
+    # specify the image classes
+    classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
+               'dog', 'frog', 'horse', 'ship', 'truck']
+    model.eval()
+
+    # Need to save these in case of final test
+    predictions = []
+    ground_truths = []
+    # iterate over test data
+    for data, target in test_data_loader:
+        data, target = data.to(device), target.to(device)
+        # forward pass: compute predicted outputs by passing inputs to the model
+        output = model(data)
+        # calculate the batch loss
+        loss = loss_fn(output, target)
+        # update test loss
+        test_loss += loss.item()
+        # convert output probabilities to predicted class
+        top_p, pred_class = torch.max(output, 1)
+        predictions.extend(pred_class.tolist())
+        ground_truths.extend(target.tolist())
+        # compare predictions to true label
+        correct_tensor = pred_class.eq(target.data.view_as(pred_class))
+        correct = np.squeeze(correct_tensor.numpy()) if not torch.cuda.is_available() else np.squeeze(
+            correct_tensor.cpu().numpy())
+        # calculate test accuracy for each object class
+        for i in range(len(target)):
+            label = target.data[i]
+            class_correct[label] += correct[i].item()
+            class_total[label] += 1
+    # average test loss
+    test_loss = test_loss / len(test_data_loader.dataset)
+    print('Test Loss: {:.6f}\n'.format(test_loss))
+
+    all_classes_acc = []
+    for i in range(10):
+        if class_total[i] > 0:
+            # cls_acc = 'Test Accuracy of %5s: %2d%% (%2d/%2d)' % (
+            #     classes[i], (100 * class_correct[i]) / class_total[i],
+            #     np.sum(class_correct[i]), np.sum(class_total[i]))
+            cls_acc = (100 * class_correct[i]) / class_total[i]
+        else:
+            # cls_acc = 'Test Accuracy of %5s: N/A (no training examples)' % (classes[i])
+            cls_acc = -1
+        print(cls_acc)
+        all_classes_acc.append(cls_acc)
+    total_acc = 100. * np.sum(class_correct) / np.sum(class_total)
+    print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
+        total_acc, np.sum(class_correct), np.sum(class_total)))
+
+    return test_loss, total_acc, all_classes_acc, predictions, ground_truths
+
+
+def fed_avg(server_model, selected_clients, client_models, client_weights):
+    # Safety lock, to not update model params accidentally
+    with torch.no_grad():
+        # need to take avg key-wise
+        for key in server_model.state_dict().keys():
+            temp = torch.zeros_like(server_model.state_dict()[key], dtype=torch.float32)
+            for sel_client in selected_clients:
+                temp += client_weights[sel_client] * client_models[sel_client].state_dict()[key]
+            # update the new value of this key in the server model
+            server_model.state_dict()[key].data.copy_(temp)
+            # update this key value in all the client models as well
+            for idx in range(len(client_weights)):
+                client_models[idx].state_dict()[key].data.copy_(server_model.state_dict()[key])
+    return server_model, client_models
+
+
+def identify_poisoned(clients_selected, poisoned_clients):
+    posioned_client_selected = []
+    for client in poisoned_clients:
+        if client in clients_selected:
+            posioned_client_selected.append(client)
+
+    return posioned_client_selected
+
+
+
+
+def main():
+    parser = argparse.ArgumentParser("To run FL from CLI")
+    parser.add_argument('-d_sel', '--dataset_selection', default='mnist', help='mnist|cifar10')
+    parser.add_argument('-c_frac', '--client_frac', type=float, default=0.1, help='client fraction to select in each round')
+    parser.add_argument('-p_frac', '--poison_frac', type=float, default=0.0, help='Poisoned fraction to select 0.0|0.1|0.2|0.4')
+    parser.add_argument('-t_cls', '--total_clients', type=int, default=10,
+                        help='Total Clients to choose from (max 100)')
+    parser.add_argument('-lr', '--learning_rate', type=float, default=1e-2, help='learning rate')
+    parser.add_argument('-bs', '--batch_size', type=int, default=32, help='batch size')
+    parser.add_argument('-opt', '--optimizer', default='Adam', help='select one Adam|SGD')
+    parser.add_argument('-fdrs', '--fed_rounds', type=int, default=10, help='iterations for communication')
+    parser.add_argument('-tevr', '--testing_every', type=int, default=4, help='testing model after every kth round')
+    parser.add_argument('-leps', '--local_epochs', type=int, default=3,
+                        help='optimization epochs in local worker between communication')
+    parser.add_argument('-ccds', '--create_cdata', action='store_true', help='Create Client Datasets')
+    parser.add_argument('--log', action='store_true', help='whether to make a log')
+    parser.add_argument('--jlog', action='store_true', help='creates a json log file used to later visualize results')
+    parser.add_argument('--tb_logs', action='store_true', help='Stores TensorBoard Logs')
+    args = parser.parse_args()
+    print(args)
+
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Computing Device:{device}")
+    seed = 42
+    rng = default_rng(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    rng = default_rng()
+    # If this flag is set first client data is created
+    if args.create_cdata:
+        create_client_data(args.dataset_selection)
+
+    if args.dataset_selection == 'mnist':
+        server_model = BasicFCN()
+    else:
+        server_model = BasicCNN()
+
+    # using gpu for computations if available
+    server_model = server_model.to(device)
+
+    # specify loss function (categorical cross-entropy)
+    loss_fn = nn.CrossEntropyLoss()
+
+    # choose how many clients you want send model to
+    client_frac = args.client_frac
+    total_clients = args.total_clients
+    client_weights = [1 / (total_clients*client_frac) for i in range(total_clients)]  # need to check about this
+    client_models = [copy.deepcopy(server_model).to(device) for _idx in range(total_clients)]
+
+    fed_rounds = args.fed_rounds
+    local_epochs = args.local_epochs
+    batch_size = args.batch_size
+
+    # location of data with the given config and logs location
+    raw_data_folder = os.path.join(base_path, f'data/{args.dataset_selection}/raw_data/')
+    logs_folder = os.path.join(base_path, 'logs/')
+    data_folder = os.path.join(base_path, f'data/{args.dataset_selection}/fed_data/label_flip0/poisoned_{int(args.poison_frac*100)}CLs/')
+
+    # specify learning rate to be used
+    learning_rate = args.learning_rate  # change this according to our model, tranfer learning use 0.001, basic model use 0.01
+    if args.optimizer == 'SGD':
+        optimizers = [optim.SGD(params=client_models[idx].parameters(), lr=learning_rate) for idx in range(total_clients)]
+    else:
+        optimizers = [optim.Adam(params=client_models[idx].parameters(), lr=learning_rate) for idx in range(total_clients)]
+    
+    client_data_loaders = create_client_data_loaders(total_clients, data_folder, batch_size)
+    test_data_loader = get_test_data_loader(args.dataset_selection, batch_size)
+
+    # Poisoned clients in this setting
+    poisoned_clients_available = []
+    poison_config_file = data_folder + 'poison_config.txt'
+    with open(poison_config_file, 'r') as pconfig_file:
+        pinfo_data = json.load(pconfig_file)
+        poisoned_clients_available = pinfo_data['poisoned_clients']
+
+    ###Training and testing model every kth round
+    testing_every = args.testing_every
+    testing_losses = []
+    total_accs = []
+    classes_accs = []
+    classes_precisions = []
+    classes_recalls = []
+    classes_f1scores = []
+    classes_supports = []
+    avg_metric_vals = []
+    poisoned_clients_sel_in_round = []
+    client_training_losses = [[] for i in range(total_clients)]
+    avg_training_losses = [] # this saves the avg loss of the clients selected in one federated round
+    for i in range(fed_rounds):
+        clients_selected = rng.choice(total_clients, size=int(total_clients * client_frac), replace=False)
+        print(clients_selected)
+
+        poisoned_clients = list(set(poisoned_clients_available) & set(clients_selected))
+        print(poisoned_clients)
+        poisoned_clients_sel_in_round.append(len(poisoned_clients))
+
+        temp_training_losses = []
+        for j in clients_selected:
+            training_losses = train_on_client(j, client_models[j], client_data_loaders[j], optimizers[j], loss_fn,
+                                              local_epochs, device)
+            client_training_losses[j].extend(training_losses)
+            temp_training_losses.append(sum(training_losses)/local_epochs)
+        avg_training_losses.append(sum(temp_training_losses)/len(clients_selected))
+        # aggregate to update server_model and client_models
+        print(f"Round {i} complete")
+        server_model, client_models = fed_avg(server_model, clients_selected, client_models, client_weights)
+        # Testing Model every kth round
+        if (i + 1) % testing_every == 0:
+            testing_loss, total_acc, classes_acc, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
+            cls_precisions, cls_recalls, cls_f1scores, cls_supports = metrics.precision_recall_fscore_support(ground_truths, predictions, average=None, zero_division=1)
+            classes_precisions.append(cls_precisions.tolist())
+            classes_recalls.append(cls_recalls.tolist())
+            classes_f1scores.append(cls_f1scores.tolist())
+            classes_supports.append(cls_supports.tolist())
+            # we store "weighted" average values of precision, recall, f1score and support in this list.
+            avg_metric_vals.append(metrics.precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1))
+            testing_losses.append(testing_loss)
+            total_accs.append(total_acc)
+            classes_accs.append(classes_acc)
+
+    if args.log:
+        log_path = os.path.join(base_path, 'logs/')
+        Path(log_path).mkdir(parents=True, exist_ok=True)
+        current_time = time.localtime()
+        logfile = open(os.path.join(log_path, '{}.log'.format(time.strftime("%Y-%m-%d %H:%M:%S", current_time))), 'a')
+        logfile.write('==={}===\n'.format(time.strftime("%Y-%m-%d %H:%M:%S", current_time)))
+        logfile.write('===Configs===\n')
+        logfile.write('d_sel: {}\n'.format(args.dataset_selection))
+        logfile.write('c_frac: {}\n'.format(args.client_frac))
+        logfile.write('p_frac: {}\n'.format(args.poison_frac))
+        logfile.write('t_cls: {}\n'.format(args.total_clients))
+        logfile.write('lr: {}\n'.format(args.learning_rate))
+        logfile.write('bs: {}\n'.format(args.batch_size))
+        logfile.write('fdrs: {}\n'.format(args.fed_rounds))
+        logfile.write('tevr: {}\n'.format(args.testing_every))
+        logfile.write('leps: {}\n'.format(args.local_epochs))
+
+        ###Logging of losses
+        logfile.write('\n\n===Training Losses===\n')
+        for i in range(args.fed_rounds):
+            logfile.write(f'average_training_loss_round_{i+1} : {avg_training_losses[i]}\n')
+        # for i in range(total_clients):
+        #     for j in range(len(client_training_losses[i])):
+        #         logfile.write(f'training_loss_client_{i} epoch: {j + 1}\tloss: {client_training_losses[i][j]}\n')
+
+        ###Logging of Testing losses and testing accs
+        logfile.write('\n\n===Testing Loss and Model Accuracy===\n')
+        for i in range(len(testing_losses)):
+            logfile.write(f'testing loss round: {(i + 1) * testing_every}\tloss: {testing_losses[i]}\n')
+            logfile.write(f'Model Acc round: {(i + 1) * testing_every}\tAcc: {total_accs[i]}%\n')
+            for j in range(10):
+                logfile.write(str(classes_accs[i][j]) +'\n')
+            print('\n\n')
+        logfile.close()
+
+    if args.tb_logs:
+        tensorboard_logs = os.path.join(logs_folder + 'fed_cifar10_experiment')
+        # to clean previously stored logs
+        shutil.rmtree(tensorboard_logs, ignore_errors=True)
+        Path(tensorboard_logs).mkdir(parents=True, exist_ok=True)
+        writer = SummaryWriter(tensorboard_logs)
+        for i in range(args.fed_rounds):
+            writer.add_scalar('average_training_loss', avg_training_losses[i], i+1)
+        ###Logging of losses
+        # for i in range(total_clients):
+        #     for j in range(len(client_training_losses[i])):
+        #         writer.add_scalar(f'training_loss_client_{i}', client_training_losses[i][j], j + 1)
+
+        ###Logging of Testing losses and testing accs
+        for j in range(len(testing_losses)):
+            writer.add_scalar('testing_loss', testing_losses[j], j + 1)
+            writer.add_scalar('model_accuracy', total_accs[j], j + 1)
+
+    if args.jlog:
+        print("We save json")
+        # saving data inside result_data object, we'll dump it later in a file
+        result_data = {}
+        config = {
+            "client_frac" : args.client_frac,
+            "poison_frac" : args.poison_frac,
+            "total_clients" : args.total_clients,
+            "learning_rate" : args.learning_rate,
+            "batch_size"    : args.batch_size,
+            "optimizer"     : args.optimizer,
+            "fed_rounds"    : args.fed_rounds,
+            "testing_every" : args.testing_every,
+            "local_epochs"  : args.local_epochs
+        }
+        result_data['data'] = args.dataset_selection
+        result_data['config'] = config
+        result_data['avg_training_losses'] = avg_training_losses
+        result_data['training_losses'] = client_training_losses
+        result_data['testing_losses'] = testing_losses
+        result_data['total_accuracies'] = total_accs
+        result_data['class_accuracies'] = classes_accs
+
+        # storing classwise precision, recall, f1score ans support for every testing round
+        result_data['class_precisions'] = classes_precisions
+        result_data['class_recalls'] = classes_recalls
+        result_data['class_f1scores'] = classes_f1scores
+        result_data['class_supports'] = classes_supports
+        result_data['avg_metric_vals'] = avg_metric_vals
+
+        # posioned_clients_selected in each round is also stored
+        result_data['poisoned_client_sel'] = poisoned_clients_sel_in_round
+
+        # one final test is run and data is saved
+        final_test_data = {}
+        testing_loss, total_acc, classes_acc, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
+        final_test_data['testing_loss'] = testing_loss
+        final_test_data['total_acc'] = total_acc
+        final_test_data['classes_acc'] = classes_acc
+        final_test_data['predictions'] = predictions
+        final_test_data['ground_truths'] = ground_truths
+        result_data['final_test_data'] = final_test_data
+
+        json_folder = os.path.join(base_path, 'json_files/')
+        Path(json_folder).mkdir(parents=True, exist_ok=True)
+        config_details = f'{args.dataset_selection}_C{args.client_frac}_P{args.poison_frac}_FDRS{args.fed_rounds}_LR{args.learning_rate}_Opt{args.optimizer}'
+        file_name = '{}.txt'.format(config_details)
+        with open(os.path.join(json_folder ,file_name), 'w') as result_file:
+            json.dump(result_data, result_file)
+
+
+
+if __name__ == '__main__':
+    main()
