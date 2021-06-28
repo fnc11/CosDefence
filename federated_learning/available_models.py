@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
+from collections import OrderedDict
+
 class BasicFCN(nn.Module):
     def __init__(self):
         super(BasicFCN, self).__init__()
