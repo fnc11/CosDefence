@@ -10,7 +10,7 @@ class BasicFCN(nn.Module):
         # fc layers
         self.fc1 = nn.Linear(784, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 10)
+        self.output_layer = nn.Linear(64, 10)
 
     def forward(self, x):
         # reshaping the batch of images into right shape, e.g. 32x28x28 to 32x784 for batch_size 32
@@ -18,7 +18,7 @@ class BasicFCN(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         # final class scores are sent as it is
-        x = self.fc3(x)
+        x = self.output_layer(x)
         return x
 
 
@@ -34,7 +34,7 @@ class BasicCNN(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
         # FC layers 1, 2, after Max pooling applied 3 times the size will be 4x4x128
         self.fc1 = nn.Linear(4 * 4 * 128, 500)
-        self.fc2 = nn.Linear(500, 10)
+        self.output_layer = nn.Linear(500, 10)
         # drop out layer with p=0.2
         self.dropout = nn.Dropout(0.2)
 
@@ -50,7 +50,7 @@ class BasicCNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         # final class scores are sent as it is
-        x = self.fc2(x)
+        x = self.output_layer(x)
         return x
 
 
@@ -66,7 +66,7 @@ def get_resnet18_pre():
     classifier = nn.Sequential(OrderedDict({
         'fc1': nn.Linear(512, 256),
         'relu1': nn.ReLU(),
-        'final_layer': nn.Linear(256, 10)
+        'output_layer': nn.Linear(256, 10)
     }))
     resnet18_model_pre.fc = classifier
     return resnet18_model_pre
@@ -74,5 +74,5 @@ def get_resnet18_pre():
 
 def get_resnet18():
     resnet18_model = models.resnet18(pretrained=False)
-    resnet18_model.fc = nn.Sequential(OrderedDict({'final_layer': nn.Linear(512, 10)}))
+    resnet18_model.fc = nn.Sequential(OrderedDict({'output_layer': nn.Linear(512, 10)}))
     return resnet18_model
