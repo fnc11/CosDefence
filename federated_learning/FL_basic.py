@@ -249,6 +249,7 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
         global both_honest_client_trust_vals
         global both_malicious_client_diffs
         global both_malicious_client_trust_vals
+
         # print(new_system_trust_mat)
         for key, val in validating_info.items():
             # print(new_system_trust_mat[key])
@@ -261,14 +262,19 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
 
             diff = abs(trust_client1-trust_client2)
             if (val[0] in poisoned_clients) and (val[1] in poisoned_clients):
-                both_malicious_client_diffs.append(diff)
-                both_malicious_client_trust_vals.append(trust_bw_clients)
+                both_malicious_client_diffs.append(*diff)
+                both_malicious_client_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
             elif (val[0] in poisoned_clients) or (val[1] in poisoned_clients):
-                single_malicious_client_diffs.append(diff)
-                single_malicious_trust_vals.append(trust_bw_clients)
+                single_malicious_client_diffs.append(*diff)
+
+                ## to collect all malicious trust values in one place
+                if val[0] in poisoned_clients:
+                    single_malicious_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
+                else:
+                    single_malicious_trust_vals.append((trust_client2, trust_client1, trust_bw_clients))
             else:
-                both_honest_client_diffs.append(diff)
-                both_honest_client_trust_vals.append(trust_bw_clients)
+                both_honest_client_diffs.append(*diff)
+                both_honest_client_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
             
 
 
@@ -411,6 +417,16 @@ def fed_avg(server_model, selected_clients, client_models, client_weights):
                 client_models[idx].state_dict()[key].data.copy_(server_model.state_dict()[key])
     return server_model, client_models
 
+
+def print_trust_vals(trust_vals):
+    trust1, trust2, trust12 = 0, 0, 0
+    count = 0
+    for item in trust_vals:
+        trust1 += item[0][0]
+        trust2 += item[1][0]
+        trust12 += item[2][0]
+        count += 1
+    print(f"trust1: {trust1/count}, trust2: {trust2/count} and trust12: {trust12/count}")
 
 
 def main():
@@ -620,10 +636,14 @@ def main():
     print(sum(both_malicious_client_diffs)/len(both_malicious_client_diffs))
     # print(both_honest_client_diffs)
     print(sum(both_honest_client_diffs)/len(both_honest_client_diffs))
-    print("Now trust vals")
-    print(sum(single_malicious_trust_vals)/len(single_malicious_trust_vals))
-    print(sum(both_honest_client_diffs)/len(both_honest_client_diffs))
-    print(sum(both_malicious_client_trust_vals)/len(both_malicious_client_trust_vals))
+
+    print("Raw trust vals")
+    print("Singel malicious client (trust1 values are for malicious client)")
+    print_trust_vals(single_malicious_trust_vals)
+    print("Both malicious clients")
+    print_trust_vals(both_malicious_client_trust_vals)
+    print("Both honest clients")
+    print_trust_vals(both_honest_client_trust_vals)    
 
     if args.log:
         log_path = os.path.join(base_path, 'logs/')
