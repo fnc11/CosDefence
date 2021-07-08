@@ -1,11 +1,11 @@
 import copy
+from operator import mod
 import time
 import os
 import numpy as np
 from numpy.random import default_rng, gamma, normal
 import argparse
 from pathlib import Path
-import shutil
 from prepare_data import create_client_data, create_client_data_loaders, get_test_data_loader
 from available_models import BasicFCN, BasicCNN
 import json
@@ -17,9 +17,13 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-def set_initial_trust_mat(dist_type="normal"):
+def set_initial_trust_mat(dist_type="manual"):
     normalized_local_trusts = list()
-    if dist_type == "random":
+    if dist_type == "manual":
+        for _ in range(100):
+            local_trust = np.ones(100, dtype=float)
+            normalized_local_trusts.append(local_trust/local_trust.sum())
+    elif dist_type == "random":
         for _ in range(100):
             local_trust = np.random.random(100)
             normalized_local_trusts.append(local_trust/local_trust.sum())
@@ -42,9 +46,11 @@ def set_initial_trust_mat(dist_type="normal"):
     return trust_mat
 
 
-def set_initial_trust_vec(dist_type="normal"):
-    if dist_type == "zeros":
-        trust_vec = np.zeros((100, 1), dtype=float)
+def set_initial_trust_vec(dist_type="manual"):
+    if dist_type == "manual":
+        trust_vec = np.ones((100), dtype=float)
+    elif dist_type == "zeros":
+        trust_vec = np.zeros((100), dtype=float)
     elif dist_type == "random":
         trust_vec = np.random.random(100)
     elif dist_type == "uniform":
@@ -60,10 +66,22 @@ def set_initial_trust_vec(dist_type="normal"):
 
 
 ##global variables !! check when running multiple experiments together
-current_system_trust_vec = set_initial_trust_vec("uniform")
+current_system_trust_vec = set_initial_trust_vec("manual")
 
 ## inital system trust need to be set using three type of distributions
-current_system_trust_mat = set_initial_trust_mat("normal")
+current_system_trust_mat = set_initial_trust_mat("manual")
+
+## global grads, we will initialize it again based on the number of parameters it stores
+## e.g. last layer of the model
+aggregate_grads = []
+
+## To check the difference in trust values
+single_malicious_client_diffs = []
+both_honest_client_diffs = []
+both_malicious_client_diffs = []
+single_malicious_trust_vals = []
+both_honest_client_trust_vals = []
+both_malicious_client_trust_vals = []
 
 
 def eigen_trust(alpha=0.8, epsilon=0.000000001):
@@ -107,7 +125,9 @@ def get_validation_clients(poisoned_clients, client_frac, total_clients, rng, ga
     # regardless of the trust distribution we use during initialization 
     global current_system_trust_vec
     print("Before trust addition")
-    print(current_system_trust_vec)
+    print(current_system_trust_vec.shape)
+    print(additional_trust_vector.shape)
+
     current_system_trust_vec += additional_trust_vector
     current_system_trust_vec /= current_system_trust_vec.sum()
 
@@ -124,30 +144,74 @@ def identify_poisoned(clients_selected, poisoned_clients):
 
     return posioned_client_selected
 
-def validate_computation(comp1_model, comp2_model, val_model):
+def validate_computation(val_model, val_id, comp1_model, comp1_id, comp2_model, comp2_id):
 
+    ## OPTION1 : last computation params
     # here for now we are just checking similarity between last layer params, can be changed later
     # !! check if tensor accessing this way is okay or we need to make copy
-    comp1_weight = comp1_model.state_dict()['output_layer.weight']
-    comp1_bias = comp1_model.state_dict()['output_layer.bias']
-    comp1_vec = torch.cat((comp1_weight.reshape(1, -1), comp1_bias.reshape(1, -1)), axis=1).cpu()
+    # comp1_weight_fc2 = comp1_model.state_dict()['fc2.weight']
+    # comp1_bias_fc2 = comp1_model.state_dict()['fc2.bias']
+    # comp1_weight_op = comp1_model.state_dict()['output_layer.weight']
+    # comp1_bias_op = comp1_model.state_dict()['output_layer.bias']
+    # comp1_vec = torch.cat([comp1_weight_fc2.reshape(1, -1), comp1_bias_fc2.reshape(1, -1), comp1_weight_op.reshape(1, -1), comp1_bias_op.reshape(1, -1)], axis=1).cpu()
     
     
-    comp2_weight = comp2_model.state_dict()['output_layer.weight']
-    comp2_bias = comp2_model.state_dict()['output_layer.bias']
-    comp2_vec = torch.cat((comp2_weight.reshape(1, -1), comp2_bias.reshape(1, -1)), axis=1).cpu()
+    # comp2_weight_fc2 = comp2_model.state_dict()['fc2.weight']
+    # comp2_bias_fc2 = comp2_model.state_dict()['fc2.bias']
+    # comp2_weight_op = comp2_model.state_dict()['output_layer.weight']
+    # comp2_bias_op = comp2_model.state_dict()['output_layer.bias']
+    # comp2_vec = torch.cat([comp2_weight_fc2.reshape(1, -1), comp2_bias_fc2.reshape(1, -1), comp2_weight_op.reshape(1, -1), comp2_bias_op.reshape(1, -1)], axis=1).cpu()
 
-    val_weight = val_model.state_dict()['output_layer.weight']
-    val_bias = val_model.state_dict()['output_layer.bias']
-    val_vec = torch.cat((val_weight.reshape(1, -1), val_bias.reshape(1, -1)), axis=1).cpu()
 
-    trust_comp1 = cosine_similarity(val_vec, comp1_vec)
-    trust_comp2 = cosine_similarity(val_vec, comp2_vec)
+    # val_weight_fc2 = val_model.state_dict()['fc2.weight']
+    # val_bias_fc2 = val_model.state_dict()['fc2.bias']
+    # val_weight_op = val_model.state_dict()['output_layer.weight']
+    # val_bias_op = val_model.state_dict()['output_layer.bias']
+    # val_vec = torch.cat([val_weight_fc2.reshape(1, -1), val_bias_fc2.reshape(1, -1), val_weight_op.reshape(1, -1), val_bias_op.reshape(1, -1)], axis=1).cpu()
+
+
+
+    ## use all parameters to make a single vector
+    # comp1_vec = []
+    # for param in comp1_model.parameters():
+    #     comp1_vec.extend(param.data.cpu())
+    # comp2_vec = []
+    # for param in comp2_model.parameters():
+    #     comp2_vec.extend(param.data.cpu())
     
-    return trust_comp1, trust_comp2
+    # val_vec = []
+    # for param in val_model.parameters():
+    #     val_vec.extend(param.data.cpu())
+    
+    # comp1_vec = np.array(comp1_vec, dtype=float).reshape(1, -1)
+    # comp2_vec = np.array(comp2_vec, dtype=float).reshape(1, -1)
+    # val_vec = np.array(val_vec, dtype=float).reshape(1, -1)
+
+    # k = 10
+    # trust_comp1 = cosine_similarity(torch.topk(val_vec, k)[0], torch.topk(comp1_vec, k)[0])/100
+    # trust_comp2 = cosine_similarity(torch.topk(val_vec, k)[0], torch.topk(comp2_vec, k)[0])/100
+    
+    ## OPTION2 : Aggregated updates
+    global aggregate_grads
+    comp1_vec = aggregate_grads[comp1_id]
+    comp2_vec = aggregate_grads[comp2_id]
+    val_vec = aggregate_grads[val_id]
 
 
-def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, computing_clients, validation_clients, overlapping, beta=0.1, gamma=1.0, threshold=0.0):
+
+    ## normalize the vectors
+    comp1_vec /= comp1_vec.sum()
+    comp2_vec /= comp2_vec.sum()
+    val_vec /= val_vec.sum()
+
+    trust_comp1 = cosine_similarity(val_vec, comp1_vec)/100
+    trust_comp2 = cosine_similarity(val_vec, comp2_vec)/100
+    trust_between_comps = cosine_similarity(comp1_vec, comp2_vec)/100
+
+    return trust_comp1, trust_comp2, trust_between_comps
+
+
+def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, computing_clients, poisoned_clients, validation_clients, overlapping, beta=0.1, gamma=1.0, threshold=0.0):
     # Step 4 Sending updates to validating clients
     # validating client dictionary, stores info of (computing_client1, computing_client2) for validating clients
     validating_info = dict()
@@ -179,15 +243,44 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
         ## need to think about whether we need to normalize the whole matrix again?
         global current_system_trust_mat
         new_system_trust_mat = current_system_trust_mat.copy()
+        global single_malicious_client_diffs
+        global single_malicious_trust_vals
+        global both_honest_client_diffs
+        global both_honest_client_trust_vals
+        global both_malicious_client_diffs
+        global both_malicious_client_trust_vals
+        # print(new_system_trust_mat)
         for key, val in validating_info.items():
-            trust_client1, trust_client2 = validate_computation(client_models[key], client_models[val[0]], client_models[val[1]])
+            # print(new_system_trust_mat[key])
+            trust_client1, trust_client2, trust_bw_clients = validate_computation(client_models[key], key, client_models[val[0]], val[0], client_models[val[1]], val[1])
+            print(f"Trust value given by {key} for {val[0]} is: {trust_client1}, and for {val[1]} is: {trust_client2}")
+            if val[0] in poisoned_clients:
+                print("client 1 is poisoned")
+            if val[1] in poisoned_clients:
+                print("client 2 is poisoned")
 
+            diff = abs(trust_client1-trust_client2)
+            if (val[0] in poisoned_clients) and (val[1] in poisoned_clients):
+                both_malicious_client_diffs.append(diff)
+                both_malicious_client_trust_vals.append(trust_bw_clients)
+            elif (val[0] in poisoned_clients) or (val[1] in poisoned_clients):
+                single_malicious_client_diffs.append(diff)
+                single_malicious_trust_vals.append(trust_bw_clients)
+            else:
+                both_honest_client_diffs.append(diff)
+                both_honest_client_trust_vals.append(trust_bw_clients)
+            
+
+
+            # print(f"previous trust row by this val: {key} client: {new_system_trust_mat[key]}")
             #beta implementation different than proposal reverse meaning, beta = 1.0 full history retention no updating
             prev_val1 = new_system_trust_mat[key, val[0]]
             new_system_trust_mat[key, val[0]] = prev_val1*beta + (1-beta)*trust_client1
 
             prev_val2 = new_system_trust_mat[key, val[1]]
             new_system_trust_mat[key, val[1]] = prev_val2*beta + (1-beta)*trust_client2
+
+            # print(f"After update, trust row by this val: {key} client: {new_system_trust_mat[key]}")
         
         ## we need to normalize the new_system_trust_mat row wise or columnwise, that needs to be seen, for now rowwise
         for i in range(100):
@@ -232,7 +325,17 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
 
         epoch_train_loss = train_loss / len(data_loader)
         epoch_training_losses.append(epoch_train_loss)
-        print('Client: {}\t Epoch: {} \tTraining Loss: {:.6f}'.format(idx, epoch, epoch_train_loss))
+        # print('Client: {}\t Epoch: {} \tTraining Loss: {:.6f}'.format(idx, epoch, epoch_train_loss))
+
+    ## save here what you want to access later for similarity calculation, for e.g. last layer params of the model
+    global aggregate_grads
+    model_weight_op = model.state_dict()['output_layer.weight']
+    model_bias_op = model.state_dict()['output_layer.bias']
+    model_vec = torch.cat([model_weight_op.reshape(1, -1), model_bias_op.reshape(1, -1)], axis=1).cpu()
+    # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector 
+    aggregate_grads[idx] += model_vec
+
+
     return epoch_training_losses
 
 
@@ -328,6 +431,7 @@ def main():
     parser.add_argument('--beta', type=float, default=0.7, help='trust history retention factor')
     parser.add_argument('--gamma', type=float, default=1.0, help='redundancy factor')
     parser.add_argument('--val_olp', action='store_true', help='validation client can be a computing client also')
+    parser.add_argument('--grad_agg', action='store_true', help='aggregate gradients to compute similarity')
     parser.add_argument('--dynamic', action='store_true', help='after some iterations validation client can be selected dynamically')
     
     ## FL settings
@@ -375,6 +479,14 @@ def main():
     # choose how many clients you want send model to
     total_clients = 100
     client_models = [copy.deepcopy(server_model).to(device) for _idx in range(total_clients)]
+
+    ## initializing this list also for the shape we need, for later storing params after model training
+    global aggregate_grads
+    model_weight_op = server_model.state_dict()['output_layer.weight']
+    model_bias_op = server_model.state_dict()['output_layer.bias']
+    model_vec = torch.cat([model_weight_op.reshape(1, -1), model_bias_op.reshape(1, -1)], axis=1).cpu()
+    for i in range(total_clients):
+        aggregate_grads.append(torch.zeros(model_vec.shape, dtype=float))
 
     fed_rounds = args.fed_rounds
     local_epochs = args.local_epochs
@@ -432,16 +544,18 @@ def main():
     for i in range(fed_rounds):
         if args.cos_defence:
             selection_probs = np.zeros(len(computing_clients_available), dtype=float)
-            for i, client in enumerate(computing_clients_available):
-                selection_probs[i] = current_system_trust_vec[client]
+            for j, client in enumerate(computing_clients_available):
+                selection_probs[j] = current_system_trust_vec[client]
             selection_probs = selection_probs/selection_probs.sum()
             clients_selected = rng.choice(computing_clients_available,p=selection_probs, size=int(total_clients * args.client_frac), replace=False)
         else:
             clients_selected = rng.choice(computing_clients_available, size=int(total_clients * args.client_frac), replace=False)
-        print(clients_selected)
+        
+        print(f"selected clients in round {i}: {clients_selected}")
 
         poisoned_clients = list(set(poisoned_clients_available) & set(clients_selected))
-        print(poisoned_clients)
+        
+        print(f"poisoned clients in round {i}: {poisoned_clients}")
         poisoned_clients_sel_in_round.append(len(poisoned_clients))
 
         temp_training_losses = []
@@ -457,7 +571,7 @@ def main():
         # if turned on we change the client_weights from normal to computed by CosDefence
         print(f"CosDefence is On: {args.cos_defence}")
         if args.cos_defence:
-            cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, validation_clients, False)
+            cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False)
         
         ## Earlier weight setting strategy
         # client_weights = [1 / (total_clients*args.client_frac) for i in range(total_clients)]  # need to check about this
@@ -469,11 +583,11 @@ def main():
         ## due to different type of initialization client weights remain low
         ## to correct this we renormalize the weights of the selected clients, so that their sum would be 1
         weights = np.zeros(len(clients_selected), dtype=float)
-        for i, client in enumerate(clients_selected):
-            weights[i] = client_weights[client]
+        for j, client in enumerate(clients_selected):
+            weights[j] = client_weights[client]
         weights = weights/weights.sum()
-        for i, client in enumerate(clients_selected):
-            client_weights[client] = weights[i]
+        for j, client in enumerate(clients_selected):
+            client_weights[client] = weights[j]
         client_weights = client_weights.to(device)
 
 
@@ -491,6 +605,25 @@ def main():
             testing_losses.append(testing_loss)
             total_accs.append(total_acc)
             classes_accs.append(classes_acc)
+
+    ## after fed rounds, printing trust difference
+    global single_malicious_client_diffs
+    global single_malicious_trust_vals
+    global both_honest_client_diffs
+    global both_honest_client_trust_vals
+    global both_malicious_client_diffs
+    global both_malicious_client_trust_vals
+    print("Here are trust diffs")
+    # print(single_malicious_client_diffs)
+    print(sum(single_malicious_client_diffs)/len(single_malicious_client_diffs))
+    # print(both_malicious_client_diffs)
+    print(sum(both_malicious_client_diffs)/len(both_malicious_client_diffs))
+    # print(both_honest_client_diffs)
+    print(sum(both_honest_client_diffs)/len(both_honest_client_diffs))
+    print("Now trust vals")
+    print(sum(single_malicious_trust_vals)/len(single_malicious_trust_vals))
+    print(sum(both_honest_client_diffs)/len(both_honest_client_diffs))
+    print(sum(both_malicious_client_trust_vals)/len(both_malicious_client_trust_vals))
 
     if args.log:
         log_path = os.path.join(base_path, 'logs/')
