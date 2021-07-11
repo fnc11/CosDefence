@@ -3,18 +3,28 @@ from operator import mod
 import time
 import os
 import numpy as np
+import pandas as pd
 from numpy.random import default_rng, gamma, normal
 import argparse
 from pathlib import Path
+
+from torch.utils import data
 from prepare_data import create_client_data, create_client_data_loaders, get_test_data_loader
 from available_models import BasicFCN, BasicCNN
 import json
 from sklearn import metrics
+from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
+
+import plotly.graph_objects as go
+import plotly.express as px
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
+base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 
 def set_initial_trust_mat(dist_type="manual"):
@@ -83,6 +93,11 @@ single_malicious_trust_vals = []
 both_honest_client_trust_vals = []
 both_malicious_client_trust_vals = []
 
+
+client_ids = []
+validation_client_ids = [] 
+all_trust_vals = []
+all_client_types = []
 
 def eigen_trust(alpha=0.8, epsilon=0.000000001):
     # print("In Eigen Trust")
@@ -250,16 +265,37 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
         global both_malicious_client_diffs
         global both_malicious_client_trust_vals
 
+        global client_ids
+        global validation_client_ids 
+        global all_trust_vals
+        global all_client_types
+
         # print(new_system_trust_mat)
         for key, val in validating_info.items():
             # print(new_system_trust_mat[key])
             trust_client1, trust_client2, trust_bw_clients = validate_computation(client_models[key], key, client_models[val[0]], val[0], client_models[val[1]], val[1])
+            
+            ## putting all trust vals given by validation client in this list for clustering
+            client_ids.extend([val[0], val[1]])
+            validation_client_ids.extend([key, key])
+            all_trust_vals.append(*trust_client1)
+            all_trust_vals.append(*trust_client2)
+
             print(f"Trust value given by {key} for {val[0]} is: {trust_client1}, and for {val[1]} is: {trust_client2}")
+            
+            # 0 means honest, 1 means malicious
+            client1_type = 0
             if val[0] in poisoned_clients:
                 print("client 1 is poisoned")
+                client1_type = 1
+            
+            client2_type = 0
             if val[1] in poisoned_clients:
                 print("client 2 is poisoned")
+                client2_type = 1
 
+            all_client_types.append(client1_type)
+            all_client_types.append(client2_type)
             diff = abs(trust_client1-trust_client2)
             if (val[0] in poisoned_clients) and (val[1] in poisoned_clients):
                 both_malicious_client_diffs.append(*diff)
@@ -429,6 +465,36 @@ def print_trust_vals(trust_vals):
     print(f"trust1: {trust1/count}, trust2: {trust2/count} and trust12: {trust12/count}")
 
 
+def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
+    save_location = os.path.join(base_path, 'results')
+
+    trust_data ={'client_id': client_ids, 'validation_client_id': validation_client_ids, 'trust_val': trust_vals, 'client_label': labels}
+    trust_df = pd.DataFrame.from_dict(trust_data)
+    trust_df['modified_trust'] = trust_df['trust_val'].apply(lambda x: int(x*1000000))
+
+    
+    ## 2D scatter plot
+    # scatter_fig = go.Figure(data=go.Scatter(x=trust_df['client_id'], y=trust_df['modified_trust'], mode='markers',
+    #                  marker_color=trust_df['client_label'], text=trust_df['validation_client_id']))
+    # scatter_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> malicious')
+    # scatter_fig.write_html(os.path.join(save_location, 'trust_scatter_plot.html'))
+
+    ## 1 D Data strip
+    strip_fig = px.strip(trust_df, x="modified_trust", y="client_label")
+    strip_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> malicious')
+    strip_fig.write_html(os.path.join(save_location, 'trust_strip.html'))
+
+    ## histogram of trust vals
+    histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label")
+    histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> malicious', barmode="group")
+    histo_fig.write_html(os.path.join(save_location, 'trust_histo.html'))
+
+
+def trust_clustering(trust_vals, labels):
+    kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_vals)
+    print(kmeans.cluster_centers_)
+    
+
 def main():
     parser = argparse.ArgumentParser("To run FL from CLI")
 
@@ -440,9 +506,11 @@ def main():
     parser.add_argument('-c_frac', '--client_frac', type=float, default=0.1, help='client fraction to select in each round')
     parser.add_argument('-p_frac', '--poison_frac', type=float, default=0.0, help='poisoned fraction to select 0.0|0.1|0.2|0.4')
     parser.add_argument('-ccds', '--create_cdata', action='store_true', help='create client datasets')
+    parser.add_argument('-cr', '--class_ratio', type=int, default=10, help='class ratio in data distribution, choose 1|4|10')
 
     ## config setting for CosDefence mechanism
     parser.add_argument('-c_def', '--cos_defence', action='store_true', help='to turn on CosDefence mechanism')
+    # parser.add_argument('-tc', '--tc_start', _)
     parser.add_argument('--alpha', type=float, default=0.8, help='initial trust importance factor')
     parser.add_argument('--beta', type=float, default=0.7, help='trust history retention factor')
     parser.add_argument('--gamma', type=float, default=1.0, help='redundancy factor')
@@ -464,9 +532,7 @@ def main():
     
     args = parser.parse_args()
     print(args)
-
-    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Computing Device:{device}")
     seed = 42
@@ -479,7 +545,7 @@ def main():
 
     # If this flag is set first client data is created
     if args.create_cdata:
-        create_client_data(args.dataset_selection)
+        create_client_data(args.dataset_selection, args.class_ratio)
 
     if args.dataset_selection == 'mnist':
         server_model = BasicFCN()
@@ -509,6 +575,7 @@ def main():
     batch_size = args.batch_size
 
     # location of data with the given config and logs location
+    global base_path
     raw_data_folder = os.path.join(base_path, f'data/{args.dataset_selection}/raw_data/')
     logs_folder = os.path.join(base_path, 'logs/')
     data_folder = os.path.join(base_path, f'data/{args.dataset_selection}/fed_data/label_flip0/poisoned_{int(args.poison_frac*100)}CLs/')
@@ -629,6 +696,9 @@ def main():
     global both_honest_client_trust_vals
     global both_malicious_client_diffs
     global both_malicious_client_trust_vals
+    global client_ids
+    global validation_client_ids 
+
     print("Here are trust diffs")
     # print(single_malicious_client_diffs)
     print(sum(single_malicious_client_diffs)/len(single_malicious_client_diffs))
@@ -643,7 +713,10 @@ def main():
     print("Both malicious clients")
     print_trust_vals(both_malicious_client_trust_vals)
     print("Both honest clients")
-    print_trust_vals(both_honest_client_trust_vals)    
+    print_trust_vals(both_honest_client_trust_vals)
+
+    trust_clustering(all_trust_vals, all_client_types)
+    gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
 
     if args.log:
         log_path = os.path.join(base_path, 'logs/')

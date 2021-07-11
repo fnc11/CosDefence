@@ -40,7 +40,7 @@ def get_dataset(dataset_name):
     return trainset
 
 
-def create_client_data(dataset_name):
+def create_client_data(dataset_name='cifar10', class_ratio=10):
     class_ids = defaultdict(list)
     trainset = get_dataset(dataset_name)
     for i in range(len(trainset)):
@@ -50,17 +50,37 @@ def create_client_data(dataset_name):
     client_lbl_tensors = [[] for i in range(100)]
 
     if dataset_name == "mnist":
-        minor_share = 28  # so we will put 28 images from each minority class => 28*9*10 = 2520 
+        print(f"Class ratio used: {class_ratio}")
+        # in mnist maximum number of samples each class at least have is 5421
+        if class_ratio == 10:
+            minor_share = 28  # so we will put 28 images from each minority class => 28*9*10 = 2520 
+        elif class_ratio == 4:
+            minor_share = 41
+        else:
+            minor_share = 54
     else:
-        minor_share = 26
+        # in cifar10 all classes have 5000 examples each
+        if class_ratio == 10:
+            minor_share = 26
+        elif class_ratio == 4:
+            minor_share = 38
+        else:
+            minor_share = 50
 
-    major_share = 10 * minor_share  # to maintain ration 10:1
+    major_share = class_ratio * minor_share  # to maintain ration 10:1
 
     # Here we are assuming first 10 clients will have class 0 as majority and next 10 will have class 1 as majority
     # and so on.
     # We define two data loader for each class, their job is to place major and minor share of images from that class
     # for 100 clients.
+    ## the below 10 is to divide whole dataset into two sets major share set and minor share set
     boundary = major_share*10 # before this boundary index we pick data for major shares
+
+    # print("preparing class\n")
+    # print(class_ratio)
+    # print(minor_share)
+    # print(major_share)
+    # print(boundary)
     for i in range(10):
         major_loader = torch.utils.data.DataLoader(trainset, batch_size=major_share,
                                                    sampler=torch.utils.data.SubsetRandomSampler(class_ids[i][:boundary]))
@@ -72,12 +92,12 @@ def create_client_data(dataset_name):
 
         for j in range(100):
             if j // 10 == i:
-                #             put major_share
+                # put major_share
                 data = next(major_iter)
                 client_img_tensors[j].extend(data[0])
                 client_lbl_tensors[j].extend(data[1])
             else:
-                #             put minor share
+                # put minor share
                 data = next(minor_iter)
                 client_img_tensors[j].extend(data[0])
                 client_lbl_tensors[j].extend(data[1])
