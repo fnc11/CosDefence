@@ -288,12 +288,19 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
             if val[0] in poisoned_clients:
                 print("client 1 is poisoned")
                 client1_type = 1
+                ## for now hard coded for majaor offenders, client 20-29 has more malicious data as compared to others
+                # if int(val[0]/10) == 2:
+                #     client1_type = 2
             
             client2_type = 0
             if val[1] in poisoned_clients:
                 print("client 2 is poisoned")
                 client2_type = 1
+                ## for now hard coded for majaor offenders
+                # if int(val[1]/10) == 2:
+                #     client2_type = 2
 
+            print(f"client1_type: {client1_type} and client2_type: {client2_type}")
             all_client_types.append(client1_type)
             all_client_types.append(client2_type)
             diff = abs(trust_client1-trust_client2)
@@ -476,17 +483,17 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     ## 2D scatter plot
     # scatter_fig = go.Figure(data=go.Scatter(x=trust_df['client_id'], y=trust_df['modified_trust'], mode='markers',
     #                  marker_color=trust_df['client_label'], text=trust_df['validation_client_id']))
-    # scatter_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> malicious')
+    # scatter_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender')
     # scatter_fig.write_html(os.path.join(save_location, 'trust_scatter_plot.html'))
 
     ## 1 D Data strip
     strip_fig = px.strip(trust_df, x="modified_trust", y="client_label")
-    strip_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> malicious')
+    strip_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender')
     strip_fig.write_html(os.path.join(save_location, 'trust_strip.html'))
 
     ## histogram of trust vals
     histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label")
-    histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> malicious', barmode="group")
+    histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender', barmode="group")
     histo_fig.write_html(os.path.join(save_location, 'trust_histo.html'))
 
 
