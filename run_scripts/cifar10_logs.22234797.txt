@@ -1,0 +1,15 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
++(0):ERROR:0: Unable to locate a modulefile for 'cuda/111'
+(EE) CudNN requires CUDA, please load it via 'module load cuda'
+Traceback (most recent call last):
+  File "start_FL.py", line 10, in <module>
+    from available_models import BasicFCN, BasicCNN
+ImportError: cannot import name 'BasicFCN' from 'available_models' (/rwthfs/rz/cluster/home/uu852150/repos/CosDefence/federated_learning/available_models.py)
