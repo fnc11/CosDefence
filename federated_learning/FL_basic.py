@@ -10,7 +10,7 @@ from pathlib import Path
 
 from torch.utils import data
 from prepare_data import create_client_data, create_client_data_loaders, get_test_data_loader
-from available_models import BasicFCN, BasicCNN
+from available_models import NNet, BasicCNN
 import json
 from sklearn import metrics
 from sklearn.cluster import KMeans
@@ -83,7 +83,8 @@ current_system_trust_mat = set_initial_trust_mat("manual")
 
 ## global grads, we will initialize it again based on the number of parameters it stores
 ## e.g. last layer of the model
-aggregate_grads = []
+aggregate_weight_grads = []
+aggregate_bias_grads = []
 
 ## To check the difference in trust values
 single_malicious_client_diffs = []
@@ -207,17 +208,31 @@ def validate_computation(val_model, val_id, comp1_model, comp1_id, comp2_model, 
     # trust_comp2 = cosine_similarity(torch.topk(val_vec, k)[0], torch.topk(comp2_vec, k)[0])/100
     
     ## OPTION2 : Aggregated updates
-    global aggregate_grads
-    comp1_vec = aggregate_grads[comp1_id]
-    comp2_vec = aggregate_grads[comp2_id]
-    val_vec = aggregate_grads[val_id]
+    global aggregate_weight_grads
+    global aggregate_bias_grads
+
+    comp1_weight_vec = copy.deepcopy(aggregate_weight_grads[comp1_id]).reshape(1, -1)
+    comp2_weight_vec = copy.deepcopy(aggregate_weight_grads[comp2_id]).reshape(1, -1)
+    val_weight_vec = copy.deepcopy(aggregate_weight_grads[val_id]).reshape(1, -1)
+    
+    comp1_bias_vec = copy.deepcopy(aggregate_bias_grads[comp1_id]).reshape(1, -1)
+    comp2_bias_vec = copy.deepcopy(aggregate_bias_grads[comp2_id]).reshape(1, -1)
+    val_bias_vec = copy.deepcopy(aggregate_bias_grads[val_id]).reshape(1, -1)
+
+    # print(comp1_weight_vec.size())
+    # print(comp1_bias_vec.size())
+    comp1_vec = torch.cat((comp1_weight_vec, comp1_bias_vec), 1)
+    comp2_vec = torch.cat((comp2_weight_vec, comp2_bias_vec), 1)
+    val_vec = torch.cat((val_weight_vec, val_bias_vec), 1)
+    # print("In Validation function") 
+    # print(comp1_vec, comp1_vec.shape)
 
 
 
     ## normalize the vectors
-    comp1_vec /= comp1_vec.sum()
-    comp2_vec /= comp2_vec.sum()
-    val_vec /= val_vec.sum()
+    comp1_vec /= np.linalg.norm(comp1_vec)
+    comp2_vec /= np.linalg.norm(comp2_vec)
+    val_vec /= np.linalg.norm(val_vec)
 
     trust_comp1 = cosine_similarity(val_vec, comp1_vec)/100
     trust_comp2 = cosine_similarity(val_vec, comp2_vec)/100
@@ -251,7 +266,7 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
         # !! also think if local trust and normalized local trust matrix make sense
         # now we iterate over the dictionary and update the system trust matrix
 
-        # first we train on validation client, new params are saved directly
+        # first we train on validation client, validation client params are saved directly in aggregate_grad lists(weight, bias)
         for j in validation_clients:
             train_on_client(j, client_models[j], client_data_loaders[j], optimizers[j], loss_fn, local_epochs, device)
         
@@ -354,6 +369,11 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
 def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, device):
     model.train()
     epoch_training_losses = []
+
+    epoch_grad_bank = dict()
+    epoch_grad_bank['output_layer.weight'] = torch.zeros(model.output_layer.weight.size())
+    epoch_grad_bank['output_layer.bias'] = torch.zeros(model.output_layer.bias.size())
+
     for epoch in range(local_epochs):
         train_loss = 0.0
         for data, target in data_loader:
@@ -367,6 +387,10 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
             loss = loss_fn(output, target)
             # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
+
+            epoch_grad_bank['output_layer.weight'] += model.output_layer.weight.grad.detach().clone().cpu()
+            epoch_grad_bank['output_layer.bias'] += model.output_layer.bias.grad.detach().clone().cpu()
+
             # perform a single optimization step (parameter update)
             optimizer.step()
             # update training loss
@@ -376,13 +400,16 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
         epoch_training_losses.append(epoch_train_loss)
         # print('Client: {}\t Epoch: {} \tTraining Loss: {:.6f}'.format(idx, epoch, epoch_train_loss))
 
+    
+    
     ## save here what you want to access later for similarity calculation, for e.g. last layer params of the model
-    global aggregate_grads
-    model_weight_op = model.state_dict()['output_layer.weight']
-    model_bias_op = model.state_dict()['output_layer.bias']
-    model_vec = torch.cat([model_weight_op.reshape(1, -1), model_bias_op.reshape(1, -1)], axis=1).cpu()
+    for key in epoch_grad_bank.keys():
+        epoch_grad_bank[key] = epoch_grad_bank[key] / local_epochs
+    
+    global aggregate_weight_grads
     # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector 
-    aggregate_grads[idx] += model_vec
+    aggregate_weight_grads[idx] += epoch_grad_bank['output_layer.weight']
+    aggregate_bias_grads[idx] += epoch_grad_bank['output_layer.bias']
 
 
     return epoch_training_losses
@@ -555,7 +582,7 @@ def main():
         create_client_data(args.dataset_selection, args.class_ratio)
 
     if args.dataset_selection == 'mnist':
-        server_model = BasicFCN()
+        server_model = NNet()
     else:
         server_model = BasicCNN()
 
@@ -570,12 +597,12 @@ def main():
     client_models = [copy.deepcopy(server_model).to(device) for _idx in range(total_clients)]
 
     ## initializing this list also for the shape we need, for later storing params after model training
-    global aggregate_grads
-    model_weight_op = server_model.state_dict()['output_layer.weight']
-    model_bias_op = server_model.state_dict()['output_layer.bias']
-    model_vec = torch.cat([model_weight_op.reshape(1, -1), model_bias_op.reshape(1, -1)], axis=1).cpu()
+    global aggregate_weight_grads
+    global aggregate_bias_grads
+
     for i in range(total_clients):
-        aggregate_grads.append(torch.zeros(model_vec.shape, dtype=float))
+        aggregate_weight_grads.append(torch.zeros(server_model.output_layer.weight.size()).cpu())
+        aggregate_bias_grads.append(torch.zeros(server_model.output_layer.bias.size()).cpu())
 
     fed_rounds = args.fed_rounds
     local_epochs = args.local_epochs
@@ -632,14 +659,13 @@ def main():
     ### Actual federated learning starts here
     ###
     for i in range(fed_rounds):
-        if args.cos_defence:
-            selection_probs = np.zeros(len(computing_clients_available), dtype=float)
-            for j, client in enumerate(computing_clients_available):
-                selection_probs[j] = current_system_trust_vec[client]
-            selection_probs = selection_probs/selection_probs.sum()
-            clients_selected = rng.choice(computing_clients_available,p=selection_probs, size=int(total_clients * args.client_frac), replace=False)
-        else:
-            clients_selected = rng.choice(computing_clients_available, size=int(total_clients * args.client_frac), replace=False)
+
+        ## if cos_defence is on then it modifies the current_system_trust_vec otherwise initial setting will be used
+        selection_probs = np.zeros(len(computing_clients_available), dtype=float)
+        for j, client in enumerate(computing_clients_available):
+            selection_probs[j] = current_system_trust_vec[client]
+        selection_probs = selection_probs/selection_probs.sum()
+        clients_selected = rng.choice(computing_clients_available,p=selection_probs, size=int(total_clients * args.client_frac), replace=False)
         
         print(f"selected clients in round {i}: {clients_selected}")
 
@@ -667,7 +693,8 @@ def main():
         # client_weights = [1 / (total_clients*args.client_frac) for i in range(total_clients)]  # need to check about this
         # client_weights = torch.tensor(client_weights)
 
-        ## New weight setting strategy
+        ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning
+        ## it changes the weights of the client selected, if not initial trust vec will be used.
         client_weights = np.copy(current_system_trust_vec)
         client_weights = torch.from_numpy(client_weights)
         ## due to different type of initialization client weights remain low

@@ -4,9 +4,9 @@ from torchvision import models
 
 from collections import OrderedDict
 
-class BasicFCN(nn.Module):
+class NNet(nn.Module):
     def __init__(self):
-        super(BasicFCN, self).__init__()
+        super(NNet, self).__init__()
         # fc layers
         self.fc1 = nn.Linear(784, 128)
         self.fc2 = nn.Linear(128, 64)
