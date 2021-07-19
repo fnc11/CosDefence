@@ -1,4 +1,5 @@
 import copy
+from utils import find_indicative_grads
 from operator import mod
 import time
 import os
@@ -83,8 +84,14 @@ current_system_trust_mat = set_initial_trust_mat("manual")
 
 ## global grads, we will initialize it again based on the number of parameters it stores
 ## e.g. last layer of the model
-aggregate_weight_grads = []
-aggregate_bias_grads = []
+aggregate_grads = []
+
+## this is a dictionary which will store gradients of all client models selected in first 10 federated rounds
+## layer wise, these gradients will be used to find important feature gradients
+grad_bank = dict()
+save_in_global = True
+## stores the location of important gradients layerwise, filled after clustering algorithm
+indicative_grads = dict()
 
 ## To check the difference in trust values
 single_malicious_client_diffs = []
@@ -208,22 +215,12 @@ def validate_computation(val_model, val_id, comp1_model, comp1_id, comp2_model, 
     # trust_comp2 = cosine_similarity(torch.topk(val_vec, k)[0], torch.topk(comp2_vec, k)[0])/100
     
     ## OPTION2 : Aggregated updates
-    global aggregate_weight_grads
-    global aggregate_bias_grads
+    global aggregate_grads
 
-    comp1_weight_vec = copy.deepcopy(aggregate_weight_grads[comp1_id]).reshape(1, -1)
-    comp2_weight_vec = copy.deepcopy(aggregate_weight_grads[comp2_id]).reshape(1, -1)
-    val_weight_vec = copy.deepcopy(aggregate_weight_grads[val_id]).reshape(1, -1)
-    
-    comp1_bias_vec = copy.deepcopy(aggregate_bias_grads[comp1_id]).reshape(1, -1)
-    comp2_bias_vec = copy.deepcopy(aggregate_bias_grads[comp2_id]).reshape(1, -1)
-    val_bias_vec = copy.deepcopy(aggregate_bias_grads[val_id]).reshape(1, -1)
+    comp1_vec = copy.deepcopy(aggregate_grads[comp1_id]).reshape(1, -1)
+    comp2_vec = copy.deepcopy(aggregate_grads[comp2_id]).reshape(1, -1)
+    val_vec = copy.deepcopy(aggregate_grads[val_id]).reshape(1, -1)
 
-    # print(comp1_weight_vec.size())
-    # print(comp1_bias_vec.size())
-    comp1_vec = torch.cat((comp1_weight_vec, comp1_bias_vec), 1)
-    comp2_vec = torch.cat((comp2_weight_vec, comp2_bias_vec), 1)
-    val_vec = torch.cat((val_weight_vec, val_bias_vec), 1)
     # print("In Validation function") 
     # print(comp1_vec, comp1_vec.shape)
 
@@ -303,17 +300,17 @@ def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_e
             if val[0] in poisoned_clients:
                 print("client 1 is poisoned")
                 client1_type = 1
-                ## for now hard coded for majaor offenders, client 20-29 has more malicious data as compared to others
-                # if int(val[0]/10) == 2:
-                #     client1_type = 2
+                # for now hard coded for majaor offenders, client 20-29 has more malicious data as compared to others
+                if int(val[0]/10) == 2:
+                    client1_type = 2
             
             client2_type = 0
             if val[1] in poisoned_clients:
                 print("client 2 is poisoned")
                 client2_type = 1
-                ## for now hard coded for majaor offenders
-                # if int(val[1]/10) == 2:
-                #     client2_type = 2
+                # for now hard coded for majaor offenders
+                if int(val[1]/10) == 2:
+                    client2_type = 2
 
             print(f"client1_type: {client1_type} and client2_type: {client2_type}")
             all_client_types.append(client1_type)
@@ -371,8 +368,8 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
     epoch_training_losses = []
 
     epoch_grad_bank = dict()
-    epoch_grad_bank['output_layer.weight'] = torch.zeros(model.output_layer.weight.size())
-    epoch_grad_bank['output_layer.bias'] = torch.zeros(model.output_layer.bias.size())
+    for name, param in model.named_parameters():
+        epoch_grad_bank[name] = torch.zeros(param.size())
 
     for epoch in range(local_epochs):
         train_loss = 0.0
@@ -387,9 +384,8 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
             loss = loss_fn(output, target)
             # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
-
-            epoch_grad_bank['output_layer.weight'] += model.output_layer.weight.grad.detach().clone().cpu()
-            epoch_grad_bank['output_layer.bias'] += model.output_layer.bias.grad.detach().clone().cpu()
+            for name, param in model.named_parameters():
+                epoch_grad_bank[name] += param.grad.detach().clone().cpu()
 
             # perform a single optimization step (parameter update)
             optimizer.step()
@@ -402,14 +398,29 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
 
     
     
-    ## save here what you want to access later for similarity calculation, for e.g. last layer params of the model
-    for key in epoch_grad_bank.keys():
-        epoch_grad_bank[key] = epoch_grad_bank[key] / local_epochs
-    
-    global aggregate_weight_grads
-    # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector 
-    aggregate_weight_grads[idx] += epoch_grad_bank['output_layer.weight']
-    aggregate_bias_grads[idx] += epoch_grad_bank['output_layer.bias']
+    ## for first 10 iterations we save all gradients layerwise to find important feature using gradients
+    global save_in_global
+    global grad_bank
+    if save_in_global:
+        for key in grad_bank.keys():
+            grad_bank[key].append(epoch_grad_bank[key]/ local_epochs)
+    else:
+        ## save here what you want to access later for similarity calculation, for e.g. last layer params of the model
+        ## or calculated by clustering method to detect important features
+
+        global aggregate_grads
+        global indicative_grads
+        epoch_grad_vecs = []
+        for key in epoch_grad_bank.keys():
+            layer_grads = (epoch_grad_bank[key]/local_epochs).numpy()
+            # print("Printing shapes")
+            # print(layer_grads.size())
+            # print(indicative_grads[key].shape)
+            epoch_grad_vecs.append(layer_grads[indicative_grads[key].astype(bool)])
+        
+        # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector
+        # grad_vec = 
+        aggregate_grads[idx] += np.concatenate(epoch_grad_vecs).flatten()
 
 
     return epoch_training_losses
@@ -575,6 +586,7 @@ def main():
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    start_cosdefence = 10
 
 
     # If this flag is set first client data is created
@@ -596,13 +608,19 @@ def main():
     total_clients = 100
     client_models = [copy.deepcopy(server_model).to(device) for _idx in range(total_clients)]
 
-    ## initializing this list also for the shape we need, for later storing params after model training
-    global aggregate_weight_grads
-    global aggregate_bias_grads
+    # ## initializing this list also for the shape we need, for later storing params after model training
+    # global aggregate_weight_grads
+    # global aggregate_bias_grads
 
-    for i in range(total_clients):
-        aggregate_weight_grads.append(torch.zeros(server_model.output_layer.weight.size()).cpu())
-        aggregate_bias_grads.append(torch.zeros(server_model.output_layer.bias.size()).cpu())
+    # for i in range(total_clients):
+    #     aggregate_weight_grads.append(torch.zeros(server_model.output_layer.weight.size()).cpu())
+    #     aggregate_bias_grads.append(torch.zeros(server_model.output_layer.bias.size()).cpu())
+
+    
+    ## initializing global grad bank
+    global grad_bank
+    for name, param in server_model.named_parameters():
+        grad_bank[name] = list()
 
     fed_rounds = args.fed_rounds
     local_epochs = args.local_epochs
@@ -680,14 +698,44 @@ def main():
                                               local_epochs, device)
             client_training_losses[j].extend(training_losses)
             temp_training_losses.append(sum(training_losses)/local_epochs)
+
+
         avg_training_losses.append(sum(temp_training_losses)/len(clients_selected))
         # aggregate to update server_model and client_models
         print(f"Round {i} complete")
 
         # if turned on we change the client_weights from normal to computed by CosDefence
         print(f"CosDefence is On: {args.cos_defence}")
+        global indicative_grads
+        global save_in_global
+        global aggregate_grads
         if args.cos_defence:
-            cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False)
+            if i == start_cosdefence - 1:
+                indicative_grads, counts = find_indicative_grads(grad_bank)
+                save_in_global = False
+                
+                ## this code is upload pre-calculated grad features.
+                # layer_names = ['fc1', 'fc2', 'output_layer']
+                # counts = 0
+                # for name in layer_names:
+                #     bias_arr = np.load(name + '.bias.npy')
+                #     weight_arr = np.load(name + '.weight.npy')
+                #     print(f"Indicative grad of {name} has sizes")
+                #     print(bias_arr.shape)
+                #     print(weight_arr.shape)
+                #     indicative_grads[name + '.bias'] = bias_arr
+                #     indicative_grads[name + '.weight'] = weight_arr
+                #     counts += np.count_nonzero(bias_arr)
+                #     counts += np.count_nonzero(weight_arr)
+                
+                ## initializing aggregate grads so that now these grads can ve collected as flat vector
+                for k in range(total_clients):
+                    aggregate_grads.append(torch.zeros(counts))
+
+                print(f"Found {counts} indicative grads")
+
+            elif i >= start_cosdefence:
+                cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False)
         
         ## Earlier weight setting strategy
         # client_weights = [1 / (total_clients*args.client_frac) for i in range(total_clients)]  # need to check about this
