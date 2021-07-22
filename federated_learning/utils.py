@@ -19,11 +19,17 @@ def cluster_params(param_arr, sep):
 
     return param_ids, count
 
-def find_indicative_grads(grad_bank):
+def find_indicative_grads(grad_bank, dataset_sel):
     ind_grad_dict = dict()
     count = 0
 
-    cluster_sep = 0.1
+    # 0.1, 0.2 good for mnist
+    if dataset_sel == "mnist":
+        cluster_sep = 0.1
+    else:
+        ## for cifar10 change this
+        cluster_sep = 0.1
+
     for layer_name in grad_bank.keys():
         
         tensor_shape = grad_bank[layer_name][0].shape

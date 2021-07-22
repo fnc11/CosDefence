@@ -555,7 +555,7 @@ def main():
 
     ## config setting for CosDefence mechanism
     parser.add_argument('-c_def', '--cos_defence', action='store_true', help='to turn on CosDefence mechanism')
-    # parser.add_argument('-tc', '--tc_start', _)
+    # parser.add_argument('-st_at', '--start_cosdefence',type=int, default=10, help='start cosdefence after this many fed rounds')
     parser.add_argument('--alpha', type=float, default=0.8, help='initial trust importance factor')
     parser.add_argument('--beta', type=float, default=0.7, help='trust history retention factor')
     parser.add_argument('--gamma', type=float, default=1.0, help='redundancy factor')
@@ -586,7 +586,6 @@ def main():
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    start_cosdefence = 10
 
 
     # If this flag is set first client data is created
@@ -595,8 +594,10 @@ def main():
 
     if args.dataset_selection == 'mnist':
         server_model = NNet()
+        start_cosdefence = int(1/args.c_frac)
     else:
         server_model = BasicCNN()
+        start_cosdefence = 2*int(1/args.c_frac)
 
     # using gpu for computations if available
     server_model = server_model.to(device)
@@ -711,22 +712,22 @@ def main():
         global aggregate_grads
         if args.cos_defence:
             if i == start_cosdefence - 1:
-                indicative_grads, counts = find_indicative_grads(grad_bank)
+                # indicative_grads, counts = find_indicative_grads(grad_bank, args.dataset_selection)
                 save_in_global = False
                 
-                ## this code is upload pre-calculated grad features.
-                # layer_names = ['fc1', 'fc2', 'output_layer']
-                # counts = 0
-                # for name in layer_names:
-                #     bias_arr = np.load(name + '.bias.npy')
-                #     weight_arr = np.load(name + '.weight.npy')
-                #     print(f"Indicative grad of {name} has sizes")
-                #     print(bias_arr.shape)
-                #     print(weight_arr.shape)
-                #     indicative_grads[name + '.bias'] = bias_arr
-                #     indicative_grads[name + '.weight'] = weight_arr
-                #     counts += np.count_nonzero(bias_arr)
-                #     counts += np.count_nonzero(weight_arr)
+                # this code is upload pre-calculated grad features.
+                layer_names = ['fc1', 'fc2', 'output_layer']
+                counts = 0
+                for name in layer_names:
+                    bias_arr = np.load(name + '.bias.npy')
+                    weight_arr = np.load(name + '.weight.npy')
+                    print(f"Indicative grad of {name} has sizes")
+                    print(bias_arr.shape)
+                    print(weight_arr.shape)
+                    indicative_grads[name + '.bias'] = bias_arr
+                    indicative_grads[name + '.weight'] = weight_arr
+                    counts += np.count_nonzero(bias_arr)
+                    counts += np.count_nonzero(weight_arr)
                 
                 ## initializing aggregate grads so that now these grads can ve collected as flat vector
                 for k in range(total_clients):
@@ -736,24 +737,28 @@ def main():
 
             elif i >= start_cosdefence:
                 cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False)
-        
-        ## Earlier weight setting strategy
-        # client_weights = [1 / (total_clients*args.client_frac) for i in range(total_clients)]  # need to check about this
-        # client_weights = torch.tensor(client_weights)
+
 
         ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning
         ## it changes the weights of the client selected, if not initial trust vec will be used.
-        client_weights = np.copy(current_system_trust_vec)
-        client_weights = torch.from_numpy(client_weights)
-        ## due to different type of initialization client weights remain low
-        ## to correct this we renormalize the weights of the selected clients, so that their sum would be 1
-        weights = np.zeros(len(clients_selected), dtype=float)
-        for j, client in enumerate(clients_selected):
-            weights[j] = client_weights[client]
-        weights = weights/weights.sum()
-        for j, client in enumerate(clients_selected):
-            client_weights[client] = weights[j]
-        client_weights = client_weights.to(device)
+        if args.cos_defence and i >= start_cosdefence:
+            client_weights = np.copy(current_system_trust_vec)
+            client_weights = torch.from_numpy(client_weights)
+            
+            ## due to different type of initialization client weights remain low
+            ## to correct this we renormalize the weights of the selected clients, so that their sum would be 1
+            weights = np.zeros(len(clients_selected), dtype=float)
+            for j, client in enumerate(clients_selected):
+                weights[j] = client_weights[client]
+            weights = weights/weights.sum()
+
+            for j, client in enumerate(clients_selected):
+                client_weights[client] = weights[j]
+            client_weights = client_weights.to(device)
+        else:
+            ## Earlier weight setting strategy
+            client_weights = [1 / (len(clients_selected)) for i in range(total_clients)]  # need to check about this
+            client_weights = torch.tensor(client_weights)
 
 
         server_model, client_models = fed_avg(server_model, clients_selected, client_models, client_weights)
@@ -771,34 +776,35 @@ def main():
             total_accs.append(total_acc)
             classes_accs.append(classes_acc)
 
-    ## after fed rounds, printing trust difference
-    global single_malicious_client_diffs
-    global single_malicious_trust_vals
-    global both_honest_client_diffs
-    global both_honest_client_trust_vals
-    global both_malicious_client_diffs
-    global both_malicious_client_trust_vals
-    global client_ids
-    global validation_client_ids 
+    if args.cos_defence and args.p_frac > 0.0:
+        ## after fed rounds, printing trust difference
+        global single_malicious_client_diffs
+        global single_malicious_trust_vals
+        global both_honest_client_diffs
+        global both_honest_client_trust_vals
+        global both_malicious_client_diffs
+        global both_malicious_client_trust_vals
+        global client_ids
+        global validation_client_ids 
 
-    print("Here are trust diffs")
-    # print(single_malicious_client_diffs)
-    print(sum(single_malicious_client_diffs)/len(single_malicious_client_diffs))
-    # print(both_malicious_client_diffs)
-    print(sum(both_malicious_client_diffs)/len(both_malicious_client_diffs))
-    # print(both_honest_client_diffs)
-    print(sum(both_honest_client_diffs)/len(both_honest_client_diffs))
+        print("Here are trust diffs")
+        # print(single_malicious_client_diffs)
+        print(sum(single_malicious_client_diffs)/len(single_malicious_client_diffs))
+        # print(both_malicious_client_diffs)
+        print(sum(both_malicious_client_diffs)/len(both_malicious_client_diffs))
+        # print(both_honest_client_diffs)
+        print(sum(both_honest_client_diffs)/len(both_honest_client_diffs))
 
-    print("Raw trust vals")
-    print("Singel malicious client (trust1 values are for malicious client)")
-    print_trust_vals(single_malicious_trust_vals)
-    print("Both malicious clients")
-    print_trust_vals(both_malicious_client_trust_vals)
-    print("Both honest clients")
-    print_trust_vals(both_honest_client_trust_vals)
+        print("Raw trust vals")
+        print("Singel malicious client (trust1 values are for malicious client)")
+        print_trust_vals(single_malicious_trust_vals)
+        print("Both malicious clients")
+        print_trust_vals(both_malicious_client_trust_vals)
+        print("Both honest clients")
+        print_trust_vals(both_honest_client_trust_vals)
 
-    trust_clustering(all_trust_vals, all_client_types)
-    gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
+        trust_clustering(all_trust_vals, all_client_types)
+        gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
 
     if args.log:
         log_path = os.path.join(base_path, 'logs/')
