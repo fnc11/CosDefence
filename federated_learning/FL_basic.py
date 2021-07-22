@@ -594,10 +594,10 @@ def main():
 
     if args.dataset_selection == 'mnist':
         server_model = NNet()
-        start_cosdefence = int(1/args.c_frac)
+        start_cosdefence = int(1/args.client_frac)
     else:
         server_model = BasicCNN()
-        start_cosdefence = 2*int(1/args.c_frac)
+        start_cosdefence = 2*int(1/args.client_frac)
 
     # using gpu for computations if available
     server_model = server_model.to(device)
@@ -776,7 +776,7 @@ def main():
             total_accs.append(total_acc)
             classes_accs.append(classes_acc)
 
-    if args.cos_defence and args.p_frac > 0.0:
+    if args.cos_defence and args.poison_frac > 0.0:
         ## after fed rounds, printing trust difference
         global single_malicious_client_diffs
         global single_malicious_trust_vals
