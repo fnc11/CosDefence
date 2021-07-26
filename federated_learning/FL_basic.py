@@ -11,7 +11,7 @@ from pathlib import Path
 
 from torch.utils import data
 from prepare_data import create_client_data, create_client_data_loaders, get_test_data_loader
-from available_models import NNet, BasicCNN
+from available_models import get_model
 import json
 from sklearn import metrics
 from sklearn.cluster import KMeans
@@ -89,7 +89,8 @@ aggregate_grads = []
 ## this is a dictionary which will store gradients of all client models selected in first 10 federated rounds
 ## layer wise, these gradients will be used to find important feature gradients
 grad_bank = dict()
-save_in_global = True
+save_in_global = False
+collect_features = False
 ## stores the location of important gradients layerwise, filled after clustering algorithm
 indicative_grads = dict()
 
@@ -231,6 +232,10 @@ def validate_computation(val_model, val_id, comp1_model, comp1_id, comp2_model, 
     comp2_vec /= np.linalg.norm(comp2_vec)
     val_vec /= np.linalg.norm(val_vec)
 
+    print(f"\n\ncomp1 : {comp1_vec}")
+    print(f"comp2 : {comp2_vec}")
+    print(f"val : {val_vec}")   
+
     trust_comp1 = cosine_similarity(val_vec, comp1_vec)/100
     trust_comp2 = cosine_similarity(val_vec, comp2_vec)/100
     trust_between_comps = cosine_similarity(comp1_vec, comp2_vec)/100
@@ -368,8 +373,11 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
     epoch_training_losses = []
 
     epoch_grad_bank = dict()
-    for name, param in model.named_parameters():
-        epoch_grad_bank[name] = torch.zeros(param.size())
+    epoch_grad_bank['fc1.weight'] = torch.zeros(model.fc1.weight.size())
+    epoch_grad_bank['fc1.bias'] = torch.zeros(model.fc1.bias.size())
+    epoch_grad_bank['output_layer.weight'] = torch.zeros(model.output_layer.weight.size())
+    epoch_grad_bank['output_layer.bias'] = torch.zeros(model.output_layer.bias.size())
+
 
     for epoch in range(local_epochs):
         train_loss = 0.0
@@ -384,8 +392,11 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
             loss = loss_fn(output, target)
             # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
-            for name, param in model.named_parameters():
-                epoch_grad_bank[name] += param.grad.detach().clone().cpu()
+            epoch_grad_bank['fc1.weight'] += model.fc1.weight.grad.detach().clone().cpu()
+            epoch_grad_bank['fc1.bias'] += model.fc1.bias.grad.detach().clone().cpu()
+            epoch_grad_bank['output_layer.weight'] += model.output_layer.weight.grad.detach().clone().cpu()
+            epoch_grad_bank['output_layer.bias'] += model.output_layer.bias.grad.detach().clone().cpu()
+
 
             # perform a single optimization step (parameter update)
             optimizer.step()
@@ -401,10 +412,11 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
     ## for first 10 iterations we save all gradients layerwise to find important feature using gradients
     global save_in_global
     global grad_bank
+    global collect_features
     if save_in_global:
-        for key in grad_bank.keys():
+        for key in epoch_grad_bank.keys():
             grad_bank[key].append(epoch_grad_bank[key]/ local_epochs)
-    else:
+    elif collect_features:
         ## save here what you want to access later for similarity calculation, for e.g. last layer params of the model
         ## or calculated by clustering method to detect important features
 
@@ -510,8 +522,9 @@ def print_trust_vals(trust_vals):
     print(f"trust1: {trust1/count}, trust2: {trust2/count} and trust12: {trust12/count}")
 
 
-def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
+def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels, dataset_selection):
     save_location = os.path.join(base_path, 'results')
+    current_time = time.localtime()
 
     trust_data ={'client_id': client_ids, 'validation_client_id': validation_client_ids, 'trust_val': trust_vals, 'client_label': labels}
     trust_df = pd.DataFrame.from_dict(trust_data)
@@ -527,12 +540,12 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     ## 1 D Data strip
     strip_fig = px.strip(trust_df, x="modified_trust", y="client_label")
     strip_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender')
-    strip_fig.write_html(os.path.join(save_location, 'trust_strip.html'))
+    strip_fig.write_html(os.path.join(save_location,'{}_trust_strip_{}.html'.format(dataset_selection, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
     ## histogram of trust vals
     histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label")
     histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender', barmode="group")
-    histo_fig.write_html(os.path.join(save_location, 'trust_histo.html'))
+    histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
 
 def trust_clustering(trust_vals, labels):
@@ -544,10 +557,11 @@ def main():
     parser = argparse.ArgumentParser("To run FL from CLI")
 
     ## To choose if we want to run experiment with cmd args or config.py, will implment later
-    parser.add_argument('--cfg_mode', action='store_true', help="if given the experiment will be run from config file")
+    # parser.add_argument('--cfg_mode', action='store_true', help="if given the experiment will be run from config file")
 
     ## FL environment settings
-    parser.add_argument('-d_sel', '--dataset_selection', default='mnist', help='mnist|cifar10')
+    parser.add_argument('-d_sel', '--dataset_selection', default='mnist', help='mnist|fmnist|cifar10')
+    parser.add_argument('-m_sel', '--model_sel', default='dataset_based', help='Choose model to be selected, nnets are for mnist| cnn for fmnist and cifar10')
     parser.add_argument('-c_frac', '--client_frac', type=float, default=0.1, help='client fraction to select in each round')
     parser.add_argument('-p_frac', '--poison_frac', type=float, default=0.0, help='poisoned fraction to select 0.0|0.1|0.2|0.4')
     parser.add_argument('-ccds', '--create_cdata', action='store_true', help='create client datasets')
@@ -559,6 +573,7 @@ def main():
     parser.add_argument('--alpha', type=float, default=0.8, help='initial trust importance factor')
     parser.add_argument('--beta', type=float, default=0.7, help='trust history retention factor')
     parser.add_argument('--gamma', type=float, default=1.0, help='redundancy factor')
+    parser.add_argument('-c_sep', '--cluster_sep', type=float, default=0.1, help='Cluster Separation')
     parser.add_argument('--val_olp', action='store_true', help='validation client can be a computing client also')
     parser.add_argument('--grad_agg', action='store_true', help='aggregate gradients to compute similarity')
     parser.add_argument('--dynamic', action='store_true', help='after some iterations validation client can be selected dynamically')
@@ -593,11 +608,19 @@ def main():
         create_client_data(args.dataset_selection, args.class_ratio)
 
     if args.dataset_selection == 'mnist':
-        server_model = NNet()
-        start_cosdefence = int(1/args.client_frac)
+        grad_cluster_algo_start = 10
+        start_cosdefence = grad_cluster_algo_start + int(1/args.client_frac)
+    elif args.dataset_selection == 'fmnist':
+        grad_cluster_algo_start = 10
+        start_cosdefence = grad_cluster_algo_start + int(1/args.client_frac)
     else:
-        server_model = BasicCNN()
-        start_cosdefence = 2*int(1/args.client_frac)
+        grad_cluster_algo_start = 0
+        start_cosdefence = grad_cluster_algo_start + 4*int(1/args.client_frac)
+
+
+    ## this will return model based on selection
+    server_model = get_model(args.model_sel, args.dataset_selection)
+    
 
     # using gpu for computations if available
     server_model = server_model.to(device)
@@ -620,8 +643,10 @@ def main():
     
     ## initializing global grad bank
     global grad_bank
-    for name, param in server_model.named_parameters():
-        grad_bank[name] = list()
+    layer_names = ['fc1', 'output_layer']
+    for name in layer_names:
+        grad_bank[name + '.weight'] = list()
+        grad_bank[name + '.bias'] = list()
 
     fed_rounds = args.fed_rounds
     local_epochs = args.local_epochs
@@ -709,25 +734,29 @@ def main():
         print(f"CosDefence is On: {args.cos_defence}")
         global indicative_grads
         global save_in_global
+        global collect_features
         global aggregate_grads
         if args.cos_defence:
-            if i == start_cosdefence - 1:
-                # indicative_grads, counts = find_indicative_grads(grad_bank, args.dataset_selection)
+            if i == grad_cluster_algo_start:
+                save_in_global = True
+            elif i == start_cosdefence - 1:
+                indicative_grads, counts = find_indicative_grads(grad_bank, args.dataset_selection, args.cluster_sep)
                 save_in_global = False
+                collect_features = True
                 
-                # this code is upload pre-calculated grad features.
-                layer_names = ['fc1', 'fc2', 'output_layer']
-                counts = 0
-                for name in layer_names:
-                    bias_arr = np.load(name + '.bias.npy')
-                    weight_arr = np.load(name + '.weight.npy')
-                    print(f"Indicative grad of {name} has sizes")
-                    print(bias_arr.shape)
-                    print(weight_arr.shape)
-                    indicative_grads[name + '.bias'] = bias_arr
-                    indicative_grads[name + '.weight'] = weight_arr
-                    counts += np.count_nonzero(bias_arr)
-                    counts += np.count_nonzero(weight_arr)
+                ## this code is upload pre-calculated grad features.
+                # layer_names = ['fc1', 'fc2', 'output_layer']
+                # counts = 0
+                # for name in layer_names:
+                #     bias_arr = np.load(name + '.bias.npy')
+                #     weight_arr = np.load(name + '.weight.npy')
+                #     print(f"Indicative grad of {name} has sizes")
+                #     print(bias_arr.shape)
+                #     print(weight_arr.shape)
+                #     indicative_grads[name + '.bias'] = bias_arr
+                #     indicative_grads[name + '.weight'] = weight_arr
+                #     counts += np.count_nonzero(bias_arr)
+                #     counts += np.count_nonzero(weight_arr)
                 
                 ## initializing aggregate grads so that now these grads can ve collected as flat vector
                 for k in range(total_clients):
@@ -739,26 +768,30 @@ def main():
                 cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False)
 
 
-        ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning
-        ## it changes the weights of the client selected, if not initial trust vec will be used.
-        if args.cos_defence and i >= start_cosdefence:
-            client_weights = np.copy(current_system_trust_vec)
-            client_weights = torch.from_numpy(client_weights)
-            
-            ## due to different type of initialization client weights remain low
-            ## to correct this we renormalize the weights of the selected clients, so that their sum would be 1
-            weights = np.zeros(len(clients_selected), dtype=float)
-            for j, client in enumerate(clients_selected):
-                weights[j] = client_weights[client]
-            weights = weights/weights.sum()
+        ## Earlier weight setting strategy
+        client_weights = [1 / (len(clients_selected)) for i in range(total_clients)]  # need to check about this
+        client_weights = torch.tensor(client_weights)
 
-            for j, client in enumerate(clients_selected):
-                client_weights[client] = weights[j]
-            client_weights = client_weights.to(device)
-        else:
-            ## Earlier weight setting strategy
-            client_weights = [1 / (len(clients_selected)) for i in range(total_clients)]  # need to check about this
-            client_weights = torch.tensor(client_weights)
+        # ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning
+        # ## it changes the weights of the client selected, if not initial trust vec will be used.
+        # if args.cos_defence and i >= start_cosdefence:
+        #     client_weights = np.copy(current_system_trust_vec)
+        #     client_weights = torch.from_numpy(client_weights)
+            
+        #     ## due to different type of initialization client weights remain low
+        #     ## to correct this we renormalize the weights of the selected clients, so that their sum would be 1
+        #     weights = np.zeros(len(clients_selected), dtype=float)
+        #     for j, client in enumerate(clients_selected):
+        #         weights[j] = client_weights[client]
+        #     weights = weights/weights.sum()
+
+        #     for j, client in enumerate(clients_selected):
+        #         client_weights[client] = weights[j]
+        #     client_weights = client_weights.to(device)
+        # else:
+        #     ## Earlier weight setting strategy
+        #     client_weights = [1 / (len(clients_selected)) for i in range(total_clients)]  # need to check about this
+        #     client_weights = torch.tensor(client_weights)
 
 
         server_model, client_models = fed_avg(server_model, clients_selected, client_models, client_weights)
@@ -804,7 +837,7 @@ def main():
         print_trust_vals(both_honest_client_trust_vals)
 
         trust_clustering(all_trust_vals, all_client_types)
-        gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
+        gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types, args.dataset_selection)
 
     if args.log:
         log_path = os.path.join(base_path, 'logs/')

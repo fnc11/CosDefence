@@ -30,6 +30,13 @@ def get_dataset(dataset_name):
                                     ])
         # Download and load the training data
         trainset = datasets.MNIST(data_folder, download=True, train=True, transform=data_transforms)
+    elif dataset_name == "fmnist":
+        # Define a transform to normalize the data
+        data_transforms = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (0.5,)),
+                                    ])
+        # Download and load the training data
+        trainset = datasets.FashionMNIST(data_folder, download=True, train=True, transform=data_transforms)
     else:
         # Define a transform to normalize the data
         data_transforms = transforms.Compose([transforms.ToTensor(),
@@ -58,6 +65,14 @@ def create_client_data(dataset_name='cifar10', class_ratio=10):
             minor_share = 41
         else:
             minor_share = 54
+    elif dataset_name == "fmnist":
+        # in fashion mnist all classes have 6000 examples each
+        if class_ratio == 10:
+            minor_share = 31
+        elif class_ratio == 4:
+            minor_share = 46
+        else:
+            minor_share = 60
     else:
         # in cifar10 all classes have 5000 examples each
         if class_ratio == 10:
@@ -188,6 +203,13 @@ def get_test_data_loader(dataset_name, batch_size):
                                     ])
         # Download and load the training data
         testset = datasets.MNIST(data_folder, download=True, train=False, transform=data_transforms)
+    elif dataset_name == "fmnist":
+        # Define a transform to normalize the data
+        data_transforms = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (0.5,)),
+                                    ])
+        # Download and load the training data
+        testset = datasets.FashionMNIST(data_folder, download=True, train=False, transform=data_transforms)
     else:
         # Define a transform to normalize the data
         data_transforms = transforms.Compose([transforms.ToTensor(),

@@ -1,4 +1,6 @@
 from sklearn.cluster import KMeans
+import warnings
+
 import numpy as np
 
 from collections import defaultdict
@@ -7,28 +9,53 @@ from collections import defaultdict
 def cluster_params(param_arr, sep):
     params = param_arr.shape[0]
     param_ids = np.zeros((params,), dtype=int)
-    count = 0
-    for idx in range(params):
-        kmeans = KMeans(n_clusters=2, random_state=0).fit(param_arr[idx].reshape(-1, 1))
-        centers = kmeans.cluster_centers_
-        param_ids[idx] = abs(centers[0] - centers[1]) >= sep
-        if param_ids[idx]:
-            # print(centers)
-            count += 1
-            print(f"{idx} : {count}")
+    node_count = 0
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mins_list = list()
+        for idx in range(params):
+            kmeans = KMeans(n_clusters=2, random_state=0).fit(param_arr[idx].reshape(-1, 1))
+            centers = kmeans.cluster_centers_
+            param_ids[idx] = abs(centers[0] - centers[1]) >= sep
+            if param_ids[idx]:
+                # print(centers)
+                # count += 1
+                # print(f"{idx} : {count}")
+                labels = kmeans.predict(param_arr[idx].reshape(-1, 1))
+                _vals, counts = np.unique(labels, return_counts=True)
+                mins_list.append(np.min(counts))
 
-    return param_ids, count
+        if len(mins_list) > 1:   
+            mins_arr = np.array(mins_list).reshape(-1, 1)
+            min_kmeans = KMeans(n_clusters=2, random_state=0).fit(mins_arr)
+            min_centers = min_kmeans.cluster_centers_
+            print(min_centers)
+            min_labels = min_kmeans.predict(mins_arr)
+            
+            ## experiment with the selected nodes, 0 and 1
+            k = 0
+            for idx in range(params):
+                if param_ids[idx]:
+                    param_ids[idx] = (min_labels[k] == 0)
+                    if param_ids[idx]:
+                        node_count += 1
+                    k += 1
 
-def find_indicative_grads(grad_bank, dataset_sel):
+    return param_ids, node_count
+
+def filter_big():
+    pass
+
+def find_indicative_grads(grad_bank, dataset_sel, cluster_sep=0.1):
     ind_grad_dict = dict()
     count = 0
 
-    # 0.1, 0.2 good for mnist
-    if dataset_sel == "mnist":
-        cluster_sep = 0.1
-    else:
-        ## for cifar10 change this
-        cluster_sep = 0.1
+    # # 0.1, 0.2 good for mnist
+    # if dataset_sel == "mnist":
+    #     cluster_sep = 0.1
+    # else:
+    #     ## for cifar10 change this
+    #     cluster_sep = 0.5
 
     for layer_name in grad_bank.keys():
         
