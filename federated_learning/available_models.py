@@ -21,7 +21,33 @@ class NNet(nn.Module):
         x = self.output_layer(x)
         return x
 
+class BasicCNN0(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # conv layers 1,2
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
+        self.conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # max pooling layer
+        self.pool = nn.MaxPool2d(2, 2)
+        # FC layers 1, 2, after Max pooling applied 3 times the size will be 4x4x128
+        self.fc1 = nn.Linear(7 * 7 * 32, 128)
+        self.output_layer = nn.Linear(128, 10)
+        # drop out layer with p=0.2
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
 
+    def forward(self, x):
+        # passing through Convolution and max pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.dropout1(x)
+        # flattening the image
+        x = x.view(-1, 7 * 7 * 32)
+        x = F.relu(self.fc1(x))
+        x = self.dropout2(x)
+        # final class scores are sent as it is
+        x = self.output_layer(x)
+        return x
 
 class BasicCNN(nn.Module):
     def __init__(self):
@@ -122,7 +148,7 @@ def get_model(name, dataset):
         if dataset == 'mnist':
             return NNet()
         elif dataset == 'fmnist':
-            return BasicCNN()
+            return BasicCNN0()
         else:
             return BasicCNN()
     elif name == "cnn2":

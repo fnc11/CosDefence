@@ -545,7 +545,7 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels, datas
     ## histogram of trust vals
     histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label")
     histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender', barmode="group")
-    histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(dataset_selection, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
 
 def trust_clustering(trust_vals, labels):

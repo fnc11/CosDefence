@@ -31,12 +31,15 @@ def cluster_params(param_arr, sep):
             min_centers = min_kmeans.cluster_centers_
             print(min_centers)
             min_labels = min_kmeans.predict(mins_arr)
+
+            ## cluster with less numbers
+            min_idx = np.argmin(min_centers)
             
-            ## experiment with the selected nodes, 0 and 1
+            ## select only those nodes which are changed by less clients
             k = 0
             for idx in range(params):
                 if param_ids[idx]:
-                    param_ids[idx] = (min_labels[k] == 0)
+                    param_ids[idx] = (min_labels[k] == min_idx)
                     if param_ids[idx]:
                         node_count += 1
                     k += 1
