@@ -61,9 +61,8 @@ def find_indicative_grads(grad_bank, dataset_sel, cluster_sep=0.1):
     #     cluster_sep = 0.5
 
     for layer_name in grad_bank.keys():
-        
-        tensor_shape = grad_bank[layer_name][0].shape
         print(f"Finding features in {layer_name}")
+        tensor_shape = grad_bank[layer_name][0].shape
         print(tensor_shape)
         print("Number of models in bank")
         print(len(grad_bank[layer_name]))

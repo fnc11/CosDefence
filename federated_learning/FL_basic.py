@@ -89,7 +89,7 @@ aggregate_grads = []
 ## this is a dictionary which will store gradients of all client models selected in first 10 federated rounds
 ## layer wise, these gradients will be used to find important feature gradients
 grad_bank = dict()
-save_in_global = False
+save_for_feature_finding = False
 collect_features = False
 ## stores the location of important gradients layerwise, filled after clustering algorithm
 indicative_grads = dict()
@@ -232,9 +232,9 @@ def validate_computation(val_model, val_id, comp1_model, comp1_id, comp2_model, 
     comp2_vec /= np.linalg.norm(comp2_vec)
     val_vec /= np.linalg.norm(val_vec)
 
-    print(f"\n\ncomp1 : {comp1_vec}")
-    print(f"comp2 : {comp2_vec}")
-    print(f"val : {val_vec}")   
+    # print(f"\n\ncomp1 : {comp1_vec}")
+    # print(f"comp2 : {comp2_vec}")
+    # print(f"val : {val_vec}")   
 
     trust_comp1 = cosine_similarity(val_vec, comp1_vec)/100
     trust_comp2 = cosine_similarity(val_vec, comp2_vec)/100
@@ -243,110 +243,146 @@ def validate_computation(val_model, val_id, comp1_model, comp1_id, comp2_model, 
     return trust_comp1, trust_comp2, trust_between_comps
 
 
-def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, computing_clients, poisoned_clients, validation_clients, overlapping, beta=0.1, gamma=1.0, threshold=0.0):
+def cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, computing_clients, poisoned_clients, validation_clients, overlapping, beta=0.1, gamma=1.0, threshold=0.0, collab=False):
+    
+    # first we train on validation client, validation client params are saved directly in aggregate_grad lists(weight, bias)
+    for j in validation_clients:
+        train_on_client(j, client_models[j], client_data_loaders[j], optimizers[j], loss_fn, local_epochs, device)
+
+
+    ## for trust plots we collect this data
+    global all_trust_vals
+    global all_client_types
+    global client_ids
+    global validation_client_ids
+
+    global current_system_trust_mat
+
     # Step 4 Sending updates to validating clients
-    # validating client dictionary, stores info of (computing_client1, computing_client2) for validating clients
-    validating_info = dict()
-    for val_client in validation_clients:
-        validating_info[val_client] = list()
-    ## implementing simple algorithm without consideration of overlapping
-    if overlapping:
-        pass
-    else:
-        num_comp = len(computing_clients)
-        num_val = len(validation_clients)
-        k = 0
-        for client in computing_clients:
-            j = 0
-            while(j < 2*gamma):
-                validating_info[validation_clients[k]].append(client)
-                j = j + 1
-                k = (k + 1)%num_val
-        
-        # Step 4, 5 Computing trust and updating the system trust matrix,
-        # !! need to think if we should normalize the trust matrix again
-        # !! also think if local trust and normalized local trust matrix make sense
-        # now we iterate over the dictionary and update the system trust matrix
+    if collab:
+        global aggregate_grads
 
-        # first we train on validation client, validation client params are saved directly in aggregate_grad lists(weight, bias)
-        for j in validation_clients:
-            train_on_client(j, client_models[j], client_data_loaders[j], optimizers[j], loss_fn, local_epochs, device)
+        agg_val_vector = torch.zeros(aggregate_grads[validation_clients[0]].size())
+        ## join grad vector from all validation client and use that for cosine similarity for all computing clients
+        for val_client in validation_clients:
+            agg_val_vector += aggregate_grads[val_client]
         
-        ## need to think about whether we need to normalize the whole matrix again?
-        global current_system_trust_mat
+        agg_val_vector = agg_val_vector.reshape(1, -1)
+        agg_val_vector /= np.linalg.norm(agg_val_vector)
+        
+        ## now we iterate over the computing clients to give them trust values
+        comp_trusts = list()
+        for comp_client in computing_clients:
+            comp_vec = copy.deepcopy(aggregate_grads[comp_client]).reshape(1, -1)
+            comp_vec /= np.linalg.norm(comp_vec)
+            comp_trusts.append(*cosine_similarity(comp_vec, agg_val_vector))
+        
+        ## update trust matrix
         new_system_trust_mat = current_system_trust_mat.copy()
-        global single_malicious_client_diffs
-        global single_malicious_trust_vals
-        global both_honest_client_diffs
-        global both_honest_client_trust_vals
-        global both_malicious_client_diffs
-        global both_malicious_client_trust_vals
-
-        global client_ids
-        global validation_client_ids 
-        global all_trust_vals
-        global all_client_types
-
-        # print(new_system_trust_mat)
-        for key, val in validating_info.items():
-            # print(new_system_trust_mat[key])
-            trust_client1, trust_client2, trust_bw_clients = validate_computation(client_models[key], key, client_models[val[0]], val[0], client_models[val[1]], val[1])
-            
-            ## putting all trust vals given by validation client in this list for clustering
-            client_ids.extend([val[0], val[1]])
-            validation_client_ids.extend([key, key])
-            all_trust_vals.append(*trust_client1)
-            all_trust_vals.append(*trust_client2)
-
-            print(f"Trust value given by {key} for {val[0]} is: {trust_client1}, and for {val[1]} is: {trust_client2}")
-            
-            # 0 means honest, 1 means malicious
-            client1_type = 0
-            if val[0] in poisoned_clients:
-                print("client 1 is poisoned")
-                client1_type = 1
-                # for now hard coded for majaor offenders, client 20-29 has more malicious data as compared to others
-                if int(val[0]/10) == 2:
-                    client1_type = 2
-            
-            client2_type = 0
-            if val[1] in poisoned_clients:
-                print("client 2 is poisoned")
-                client2_type = 1
-                # for now hard coded for majaor offenders
-                if int(val[1]/10) == 2:
-                    client2_type = 2
-
-            print(f"client1_type: {client1_type} and client2_type: {client2_type}")
-            all_client_types.append(client1_type)
-            all_client_types.append(client2_type)
-            diff = abs(trust_client1-trust_client2)
-            if (val[0] in poisoned_clients) and (val[1] in poisoned_clients):
-                both_malicious_client_diffs.append(*diff)
-                both_malicious_client_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
-            elif (val[0] in poisoned_clients) or (val[1] in poisoned_clients):
-                single_malicious_client_diffs.append(*diff)
-
-                ## to collect all malicious trust values in one place
-                if val[0] in poisoned_clients:
-                    single_malicious_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
-                else:
-                    single_malicious_trust_vals.append((trust_client2, trust_client1, trust_bw_clients))
+        for val_client, comp_client, new_trust_val in zip(validation_clients, computing_clients, comp_trusts):
+            prev_val = new_system_trust_mat[val_client, comp_client]
+            new_system_trust_mat[val_client, comp_client] = prev_val*beta + (1-beta)*new_trust_val
+            all_trust_vals.append(new_trust_val)
+            client_ids.append(comp_client)
+            if comp_client in poisoned_clients:
+                client_type = 1
+                if comp_client//2 == 2:
+                    client_type = 2
             else:
-                both_honest_client_diffs.append(*diff)
-                both_honest_client_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
+                client_type = 0
+            all_client_types.append(client_type) 
+    else:
+        # validating client dictionary, stores info of (computing_client1, computing_client2) for validating clients
+        validating_info = dict()
+        for val_client in validation_clients:
+            validating_info[val_client] = list()
+        ## implementing simple algorithm without consideration of overlapping
+        if overlapping:
+            pass
+        else:
+            num_comp = len(computing_clients)
+            num_val = len(validation_clients)
+            k = 0
+            for client in computing_clients:
+                j = 0
+                while(j < 2*gamma):
+                    validating_info[validation_clients[k]].append(client)
+                    j = j + 1
+                    k = (k + 1)%num_val
             
+            # Step 4, 5 Computing trust and updating the system trust matrix,
+            # !! need to think if we should normalize the trust matrix again
+            # !! also think if local trust and normalized local trust matrix make sense
+            # now we iterate over the dictionary and update the system trust matrix
+            
+            new_system_trust_mat = current_system_trust_mat.copy()
+            global single_malicious_client_diffs
+            global single_malicious_trust_vals
+            global both_honest_client_diffs
+            global both_honest_client_trust_vals
+            global both_malicious_client_diffs
+            global both_malicious_client_trust_vals 
+
+            # print(new_system_trust_mat)
+            for key, val in validating_info.items():
+                # print(new_system_trust_mat[key])
+                trust_client1, trust_client2, trust_bw_clients = validate_computation(client_models[key], key, client_models[val[0]], val[0], client_models[val[1]], val[1])
+                
+                ## putting all trust vals given by validation client in this list for clustering
+                client_ids.extend([val[0], val[1]])
+                validation_client_ids.extend([key, key])
+                all_trust_vals.append(*trust_client1)
+                all_trust_vals.append(*trust_client2)
+
+                print(f"Trust value given by {key} for {val[0]} is: {trust_client1}, and for {val[1]} is: {trust_client2}")
+                
+                # 0 means honest, 1 means malicious
+                client1_type = 0
+                if val[0] in poisoned_clients:
+                    print("client 1 is poisoned")
+                    client1_type = 1
+                    # for now hard coded for majaor offenders, client 20-29 has more malicious data as compared to others
+                    if int(val[0]/10) == 2:
+                        client1_type = 2
+                
+                client2_type = 0
+                if val[1] in poisoned_clients:
+                    print("client 2 is poisoned")
+                    client2_type = 1
+                    # for now hard coded for majaor offenders
+                    if int(val[1]/10) == 2:
+                        client2_type = 2
+
+                print(f"client1_type: {client1_type} and client2_type: {client2_type}")
+                all_client_types.append(client1_type)
+                all_client_types.append(client2_type)
+                diff = abs(trust_client1-trust_client2)
+                if (val[0] in poisoned_clients) and (val[1] in poisoned_clients):
+                    both_malicious_client_diffs.append(*diff)
+                    both_malicious_client_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
+                elif (val[0] in poisoned_clients) or (val[1] in poisoned_clients):
+                    single_malicious_client_diffs.append(*diff)
+
+                    ## to collect all malicious trust values in one place
+                    if val[0] in poisoned_clients:
+                        single_malicious_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
+                    else:
+                        single_malicious_trust_vals.append((trust_client2, trust_client1, trust_bw_clients))
+                else:
+                    both_honest_client_diffs.append(*diff)
+                    both_honest_client_trust_vals.append((trust_client1, trust_client2, trust_bw_clients))
+                
 
 
-            # print(f"previous trust row by this val: {key} client: {new_system_trust_mat[key]}")
-            #beta implementation different than proposal reverse meaning, beta = 1.0 full history retention no updating
-            prev_val1 = new_system_trust_mat[key, val[0]]
-            new_system_trust_mat[key, val[0]] = prev_val1*beta + (1-beta)*trust_client1
+                # print(f"previous trust row by this val: {key} client: {new_system_trust_mat[key]}")
+                #beta implementation different than proposal reverse meaning, beta = 1.0 full history retention no updating
+                prev_val1 = new_system_trust_mat[key, val[0]]
+                new_system_trust_mat[key, val[0]] = prev_val1*beta + (1-beta)*trust_client1
 
-            prev_val2 = new_system_trust_mat[key, val[1]]
-            new_system_trust_mat[key, val[1]] = prev_val2*beta + (1-beta)*trust_client2
+                prev_val2 = new_system_trust_mat[key, val[1]]
+                new_system_trust_mat[key, val[1]] = prev_val2*beta + (1-beta)*trust_client2
 
-            # print(f"After update, trust row by this val: {key} client: {new_system_trust_mat[key]}")
+                # print(f"After update, trust row by this val: {key} client: {new_system_trust_mat[key]}")
         
         ## we need to normalize the new_system_trust_mat row wise or columnwise, that needs to be seen, for now rowwise
         for i in range(100):
@@ -410,10 +446,10 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, local_epochs, d
     
     
     ## for first 10 iterations we save all gradients layerwise to find important feature using gradients
-    global save_in_global
+    global save_for_feature_finding
     global grad_bank
     global collect_features
-    if save_in_global:
+    if save_for_feature_finding:
         for key in epoch_grad_bank.keys():
             grad_bank[key].append(epoch_grad_bank[key]/ local_epochs)
     elif collect_features:
@@ -522,20 +558,20 @@ def print_trust_vals(trust_vals):
     print(f"trust1: {trust1/count}, trust2: {trust2/count} and trust12: {trust12/count}")
 
 
-def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels, dataset_selection):
+def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels, dataset_selection, collab):
     save_location = os.path.join(base_path, 'results')
     current_time = time.localtime()
 
-    trust_data ={'client_id': client_ids, 'validation_client_id': validation_client_ids, 'trust_val': trust_vals, 'client_label': labels}
+    if collab:
+        ## since in collab mode multiple validation clients give trust value we don't have 1:1 ref for
+        ## computing client who gave them trust value
+        trust_data ={'client_id': client_ids, 'trust_val': trust_vals, 'client_label': labels}
+    else:
+        trust_data ={'client_id': client_ids, 'validation_client_id': validation_client_ids, 'trust_val': trust_vals, 'client_label': labels}
+    
     trust_df = pd.DataFrame.from_dict(trust_data)
     trust_df['modified_trust'] = trust_df['trust_val'].apply(lambda x: int(x*1000000))
 
-    
-    ## 2D scatter plot
-    # scatter_fig = go.Figure(data=go.Scatter(x=trust_df['client_id'], y=trust_df['modified_trust'], mode='markers',
-    #                  marker_color=trust_df['client_label'], text=trust_df['validation_client_id']))
-    # scatter_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender')
-    # scatter_fig.write_html(os.path.join(save_location, 'trust_scatter_plot.html'))
 
     ## 1 D Data strip
     strip_fig = px.strip(trust_df, x="modified_trust", y="client_label")
@@ -569,7 +605,10 @@ def main():
 
     ## config setting for CosDefence mechanism
     parser.add_argument('-c_def', '--cos_defence', action='store_true', help='to turn on CosDefence mechanism')
-    # parser.add_argument('-st_at', '--start_cosdefence',type=int, default=10, help='start cosdefence after this many fed rounds')
+    parser.add_argument('-c_type', '--cos_defence_type', type=int, default=1, help="for distributive type choose 0, for collaberative type choose 1")
+    parser.add_argument('-g_st', '--grad_collection_start', type=int, default=0, help='grad collection start from round')
+    parser.add_argument('-g_for', '--grad_collect_for', type=int, default=-1, help="collect grads for these many rounds")
+    parser.add_argument('-c_layer', '--consider_layers', default='l2', help="choose layers for grad collection f2|f1|fl|l1|l2|all")
     parser.add_argument('--alpha', type=float, default=0.8, help='initial trust importance factor')
     parser.add_argument('--beta', type=float, default=0.7, help='trust history retention factor')
     parser.add_argument('--gamma', type=float, default=1.0, help='redundancy factor')
@@ -607,15 +646,20 @@ def main():
     if args.create_cdata:
         create_client_data(args.dataset_selection, args.class_ratio)
 
-    if args.dataset_selection == 'mnist':
-        grad_cluster_algo_start = 10
-        start_cosdefence = grad_cluster_algo_start + int(1/args.client_frac)
-    elif args.dataset_selection == 'fmnist':
-        grad_cluster_algo_start = 10
-        start_cosdefence = grad_cluster_algo_start + int(1/args.client_frac)
+    if args.cos_defence_type == 0:
+        collab = False
     else:
-        grad_cluster_algo_start = 0
-        start_cosdefence = grad_cluster_algo_start + 4*int(1/args.client_frac)
+        collab = True
+
+    if args.grad_collect_for == -1:
+        if args.dataset_selection == 'mnist':
+            start_cosdefence = args.grad_collection_start + int(1/args.client_frac)
+        elif args.dataset_selection == 'fmnist':
+            start_cosdefence = args.grad_collection_start + int(1/args.client_frac)
+        else:
+            start_cosdefence = args.grad_collection_start + 4*int(1/args.client_frac)
+    else:
+        start_cosdefence = args.grad_collection_start + args.grad_collect_for
 
 
     ## this will return model based on selection
@@ -733,15 +777,15 @@ def main():
         # if turned on we change the client_weights from normal to computed by CosDefence
         print(f"CosDefence is On: {args.cos_defence}")
         global indicative_grads
-        global save_in_global
+        global save_for_feature_finding
         global collect_features
         global aggregate_grads
         if args.cos_defence:
-            if i == grad_cluster_algo_start:
-                save_in_global = True
+            if i == args.grad_collection_start:
+                save_for_feature_finding = True
             elif i == start_cosdefence - 1:
                 indicative_grads, counts = find_indicative_grads(grad_bank, args.dataset_selection, args.cluster_sep)
-                save_in_global = False
+                save_for_feature_finding = False
                 collect_features = True
                 
                 ## this code is upload pre-calculated grad features.
@@ -765,7 +809,7 @@ def main():
                 print(f"Found {counts} indicative grads")
 
             elif i >= start_cosdefence:
-                cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False)
+                cos_defence(client_models, client_data_loaders, optimizers, loss_fn, local_epochs, device, clients_selected, poisoned_clients, validation_clients, False,args.beta, args.gamma, 0, collab)
 
 
         ## Earlier weight setting strategy
@@ -809,7 +853,7 @@ def main():
             total_accs.append(total_acc)
             classes_accs.append(classes_acc)
 
-    if args.cos_defence and args.poison_frac > 0.0:
+    if args.cos_defence and args.poison_frac > 0.0 and (not collab):
         ## after fed rounds, printing trust difference
         global single_malicious_client_diffs
         global single_malicious_trust_vals
@@ -817,8 +861,6 @@ def main():
         global both_honest_client_trust_vals
         global both_malicious_client_diffs
         global both_malicious_client_trust_vals
-        global client_ids
-        global validation_client_ids 
 
         print("Here are trust diffs")
         # print(single_malicious_client_diffs)
@@ -836,8 +878,12 @@ def main():
         print("Both honest clients")
         print_trust_vals(both_honest_client_trust_vals)
 
-        trust_clustering(all_trust_vals, all_client_types)
-        gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types, args.dataset_selection)
+    global client_ids
+    global validation_client_ids 
+    global all_trust_vals
+    global all_client_types
+    trust_clustering(all_trust_vals, all_client_types)
+    gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types, args.dataset_selection, collab)
 
     if args.log:
         log_path = os.path.join(base_path, 'logs/')
