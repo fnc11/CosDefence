@@ -1,0 +1,37 @@
+[FL_DATA]
+DATASET = "mnist"
+CLIENT_FRAC = 0.1 # client fraction to select in each round 0.1|0.2|0.4|1.0
+POISON_FRAC = 0.4 # poisoned fraction for environment 0.0|0.1|0.2|0.4
+CREATE_DATASET = True # if true it creates FL Dataset
+CLASS_RATION = 10 # class ratio in client data distribution, choose 1|4|10
+
+[FL_SETTINGS]
+MODEL = "nnet" # model to be used
+LEARNING_RATE = 0.01 # client's model learning rate
+BATCH_SIZE = 32 # client model parameter
+LOCAL_EPOCHS = 3 # epochs to run before clients send back the model update
+OPTIMIZER = "adam" # client model parameter
+FED_ROUNDS = 30 # federated rounds to run
+TEST_EVERY = 3 # test the model for accuracy after every 3rd round
+
+
+[COS_DEFENCE_SETTINGS]
+COS_DEFENCE = True # to turn on cos_defence
+COLLAB_MODE = True  # collaboration mode on means, all validation clients jointly assign trust
+CONSIDER_LAYERS = "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
+GRAD_AGG = True   # Collect all gradients over the iterations or just use last iteration grads
+USE_AUROR = True  # use Auror's cluster algo to find important neural units in the layers
+USE_AUROR_PLUS = False  # use one step extra to Auror's cluster algo to find important neural units in the layers
+GRAD_COLLECTION_START = 0   # when to start collecting grads 
+GRAD_COLLECT_FOR = -1   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
+CLUSTER_SEP = 0.1   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
+ALPHA = 0.8   # parameter for updating system trust vector
+BETA = 0.7    # parameter for updating system trust matrix
+GAMMA = 1.0   # validation client redundancy factor
+VAL_OLP = False   # validation client can overlap with computing clients
+DYNAMIC_VAL_SELECTION = False   # should validation client are selected in each round based on trust
+
+[LOG]
+LOG_LEVEL = 'info' # To make logs based on logging level
+JSON_RESULTS = True  # whether to save results, they are saved in json files for later visualization
+
