@@ -17,7 +17,7 @@ TEST_EVERY: 3 # test the model for accuracy after every 3rd round
 
 
 # COS_DEFENCE_SETTINGS
-COS_DEFENCE: False # to turn on cos_defence
+COS_DEFENCE: True # to turn on cos_defence
 SEL_PROB: False  # to pick clients based on probability (system trust vec), otherwise top k clients are selected
 COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly assign trust
 CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
@@ -34,6 +34,6 @@ DYNAMIC_VAL_SELECTION: False   # should validation client are selected in each r
 
 
 # LOG
-LOG_LEVEL: 'DEBUG' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
+LOG_LEVEL: 'INFO' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
 JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization
 
