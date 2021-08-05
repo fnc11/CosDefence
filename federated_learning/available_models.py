@@ -49,7 +49,7 @@ class BasicCNN0(nn.Module):
         x = self.output_layer(x)
         return x
 
-class BasicCNN(nn.Module):
+class BasicCNN1(nn.Module):
     def __init__(self):
         super().__init__()
         # conv layers 1,2
@@ -143,15 +143,14 @@ def get_resnet18():
     return resnet18_model
 
 
-def get_model(name, dataset):
-    if name == "dataset_based":
-        if dataset == 'mnist':
-            return NNet()
-        elif dataset == 'fmnist':
-            return BasicCNN0()
-        else:
-            return BasicCNN()
-    elif name == "cnn2":
+def get_model(name):
+    if name == "nnet":
+        return NNet()
+    elif name == 'basic_cnn0':
+        return BasicCNN0()
+    elif name == 'basic_cnn1':
+        return BasicCNN1()
+    else:
         return BasicCNN2()
 
     

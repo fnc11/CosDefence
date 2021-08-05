@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 import shutil
 from numpy.random import default_rng
@@ -20,6 +19,7 @@ def get_poisoned_labels(orig_labels, label_flip_scheme):
 
 
 def get_dataset(dataset_name):
+    global base_path
     data_folder = base_path + f'/data/{dataset_name}/raw_data/'
     Path(data_folder).mkdir(parents=True, exist_ok=True)
 
@@ -129,6 +129,7 @@ def create_client_data(dataset_name='cifar10', class_ratio=10):
     total_clients = 100
     seed = 42
     rng = default_rng(seed)
+    global base_path
     root_save_folder = os.path.join(base_path, f'data/{dataset_name}/fed_data/')
     # in case folder were present already, cleans the folder inside so that if we accidentally
     # ran ccds flag twice we don't poison data more than necessary
@@ -193,6 +194,7 @@ def create_client_data_loaders(client_nums, data_folder, batch_size, random_mode
     return data_loaders
 
 def get_test_data_loader(dataset_name, batch_size):
+    global base_path
     data_folder = base_path + f'/data/{dataset_name}/raw_data/'
     Path(data_folder).mkdir(parents=True, exist_ok=True)
 

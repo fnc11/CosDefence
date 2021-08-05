@@ -49,16 +49,9 @@ def cluster_params(param_arr, sep):
 def filter_big():
     pass
 
-def find_indicative_grads(grad_bank, dataset_sel, cluster_sep=0.1):
+def find_indicative_grads(grad_bank, cluster_sep=0.1):
     ind_grad_dict = dict()
     count = 0
-
-    # # 0.1, 0.2 good for mnist
-    # if dataset_sel == "mnist":
-    #     cluster_sep = 0.1
-    # else:
-    #     ## for cifar10 change this
-    #     cluster_sep = 0.5
 
     for layer_name in grad_bank.keys():
         print(f"Finding features in {layer_name}")
