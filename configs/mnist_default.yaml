@@ -30,7 +30,6 @@ CLUSTER_SEP: 0.1   # parameter for Auror's cluster algo, how much seperation bet
 ALPHA: 0.8   # parameter for updating system trust vector
 BETA: 0.7    # parameter for updating system trust matrix
 GAMMA: 0.5   # decides how much initial trust worthy clients in the environment validation client redundancy factor
-DYNAMIC_VAL_SELECTION: False   # should validation client are selected in each round based on trust
 
 
 # LOG

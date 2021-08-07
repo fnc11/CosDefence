@@ -62,6 +62,8 @@ all_client_types = None
 def set_initial_trust_vec(dist_type="manual"):
     if dist_type == "manual":
         trust_vec = np.ones((100), dtype=float)
+    elif dist_type == "zeros":
+        trust_vec = np.zeros((100), dtype=float)
     elif dist_type == "random":
         trust_vec = np.random.random(100)
     elif dist_type == "uniform":
@@ -70,7 +72,8 @@ def set_initial_trust_vec(dist_type="manual"):
         mu, sigma = 0.5, 0.1 # mean and standard deviation
         trust_vec = np.random.normal(mu, sigma, 100)
 
-    trust_vec /= trust_vec.sum()
+    if trust_vec.sum() > 0.0:
+        trust_vec /= trust_vec.sum()
     logging.info("Initial Trust vector set by method")
     logging.info(trust_vec)
     return trust_vec
@@ -104,6 +107,7 @@ def set_initial_trust_mat(dist_type="manual"):
 
 def init_validation_clients(total_clients, poisoned_clients, rng):
     global config
+    global current_system_trust_vec
     # selecting validation clients
     validation_clients_available = [client for client in range(total_clients) if client not in poisoned_clients]
     validation_clients = rng.choice(validation_clients_available, size=int(config['GAMMA'] * total_clients * config['CLIENT_FRAC']), replace=False)
@@ -111,44 +115,46 @@ def init_validation_clients(total_clients, poisoned_clients, rng):
     # validation client's trust distribution
     additional_trust_vector = np.zeros(total_clients)
     # replaces the zeros with 1 amount of trust value given to validation client
-    np.put(additional_trust_vector, validation_clients, 1/len(validation_clients))
+    np.put(additional_trust_vector, validation_clients, max(0.01, config["TRUST_INC"]*np.max(current_system_trust_vec)))
 
     # we add this additional trust vector to the initial system trust so that system has more trust on validation clients
     # regardless of the trust distribution we use during initialization 
-    global current_system_trust_vec
-    print("Before trust addition")
-    print(current_system_trust_vec.shape)
-    print(additional_trust_vector.shape)
+    logging.info("Before trust addition")
+    logging.info(current_system_trust_vec.shape)
+    logging.info(additional_trust_vector.shape)
 
     current_system_trust_vec += additional_trust_vector
     current_system_trust_vec /= current_system_trust_vec.sum()
 
-    print("After Validation client trust addition")
-    print(current_system_trust_vec)
+    logging.info("After Validation client trust addition")
+    logging.info(current_system_trust_vec)
+
+    return validation_clients
 
 def eigen_trust(alpha=0.8, epsilon=0.000000001):
-    # print("In Eigen Trust")
+    logging.debug("In Eigen Trust")
     ## need to check their dimensions but for now we make it so that they can be multiplied
     global current_system_trust_mat
     global current_system_trust_vec
     matrix_M = np.copy(current_system_trust_mat)
 
     pre_trust = np.copy(current_system_trust_vec)
-    # print(pre_trust)
+    # logging.debug(pre_trust)
     
     n = 1000
     new_trust = pre_trust
     # delta_diffs = list()
     for i in range(n):
         old_trust = new_trust
+        logging.debug(new_trust)
         new_trust = np.matmul(matrix_M.transpose(), old_trust)
         new_trust = alpha*pre_trust + (1-alpha)*new_trust 
         
         dist = np.linalg.norm(new_trust-old_trust)
         # delta_diffs.append(dist)
         if dist <= epsilon:
-            print(f"\nno change in trust values after iter: {i} with alpha: {alpha}")
-            # print(new_trust)
+            logging.debug(f"\nno change in trust values after iter: {i} with alpha: {alpha}")
+            # logging.debug(new_trust)
             break
 
     ## normalize it to sum upto 1
@@ -166,7 +172,7 @@ def identify_poisoned(clients_selected, poisoned_clients):
     return posioned_client_selected
 
 
-def cos_defence(client_models, computing_clients, poisoned_clients, threshold=0.0):
+def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
     ## here poisoned clients are just used for analytics purpose
     global config
     
@@ -181,11 +187,11 @@ def cos_defence(client_models, computing_clients, poisoned_clients, threshold=0.
 
     ## first identify validation clients from computing clients, we assume half of the computing clients as
     ## validation clients, top k values
-    system_trust_vals = np.array(current_system_trust_vec)
+    system_trust_vals = np.array(current_system_trust_vec.copy())
     selected_client_trust_vals = system_trust_vals[computing_clients]
     val_client_num = int(len(computing_clients)/2)
     validating_clients = computing_clients[np.argsort(selected_client_trust_vals)[-val_client_num:]]
-    print(f"Validating client selected: {validating_clients}")
+    logging.info(f"Validating client selected: {validating_clients}")
     
 
     ## update trust matrix
@@ -207,8 +213,15 @@ def cos_defence(client_models, computing_clients, poisoned_clients, threshold=0.
         for comp_client in computing_clients:
             comp_vec = copy.deepcopy(aggregate_grads[comp_client]).reshape(1, -1)
             comp_vec /= np.linalg.norm(comp_vec)
-            comp_trusts.append((1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/200)
+            comp_trusts.append((1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2)
         
+        ## make 2 clusters assuming one for honest (with high similarity value) and one for malicious(with low similarity value)
+        trust_arr = np.array(comp_trusts).reshape(-1, 1)
+        kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
+        honest_trust_threshold = np.max(kmeans.cluster_centers_)*(1 - config['HONEST_PARDON_FACTOR'])
+        trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0001)
+        
+        comp_trusts = list(trust_arr)
         for val_client, comp_client, new_trust_val in zip(validating_clients, computing_clients, comp_trusts):
             prev_val = new_system_trust_mat[val_client, comp_client]
             new_system_trust_mat[val_client, comp_client] = prev_val*config['BETA'] + (1-config['BETA'])*new_trust_val
@@ -248,22 +261,22 @@ def cos_defence(client_models, computing_clients, poisoned_clients, threshold=0.
                         client_type = 0
                     all_client_types.append(client_type) 
             
+    ## we need to normalize the new_system_trust_mat row wise
+    sum_of_rows = new_system_trust_mat.sum(axis=1)
+    current_system_trust_mat = new_system_trust_mat / sum_of_rows[:, np.newaxis]
+    # new_system_trust_mat = new_system_trust_mat / new_system_trust_mat.max(axis=0)
 
-        ## we need to normalize the new_system_trust_mat row wise
-        new_system_trust_mat = new_system_trust_mat / new_system_trust_mat.max(axis=0)
-        current_system_trust_mat = new_system_trust_mat
+    # Step 6
+    # Now we calculate new system trust vector with the help of eigen_trust, since the variables are global
+    # we update directly to the current_system_trust_vec
+    eigen_trust(config['ALPHA'])
 
-        # Step 6
-        # Now we calculate new system trust vector with the help of eigen_trust, since the variables are global
-        # we update directly to the current_system_trust_vec
-        eigen_trust(alpha=0.4)
-
-        # now aggregate the new global model using this system trust vec
-        # in normal_scenario all clients get equal weight but we have given trust vector based on
-        # the computation.
-        # Thresholding: If we want to set a threhold for minimum trust in order to taken into model averaging
-        ## i.e. setting all trust values below threshold = 0.01 to zero.
-        current_system_trust_vec = np.where(current_system_trust_vec > threshold, current_system_trust_vec, 0.0)
+    # now aggregate the new global model using this system trust vec
+    # in normal_scenario all clients get equal weight but we have given trust vector based on
+    # the computation.
+    # Thresholding: If we want to set a threhold for minimum trust in order to taken into model averaging
+    ## i.e. setting all trust values below threshold = 0.01 to zero.
+    current_system_trust_vec = np.where(current_system_trust_vec > threshold, current_system_trust_vec, 0.0)
 
 
 
@@ -325,9 +338,9 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, device):
         epoch_grad_vecs = []
         for key in epoch_grad_bank.keys():
             layer_grads = (epoch_grad_bank[key]/config['LOCAL_EPOCHS']).numpy()
-            # print("Printing shapes")
-            # print(layer_grads.size())
-            # print(indicative_grads[key].shape)
+            # logging.info("Printing shapes")
+            # logging.info(layer_grads.size())
+            # logging.info(indicative_grads[key].shape)
             epoch_grad_vecs.append(layer_grads[indicative_grads[key].astype(bool)])
         
         # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector
@@ -374,7 +387,7 @@ def run_test(model, test_data_loader, loss_fn, device):
             class_total[label] += 1
     # average test loss
     test_loss = test_loss / len(test_data_loader.dataset)
-    print('Test Loss: {:.6f}\n'.format(test_loss))
+    logging.debug('Test Loss: {:.6f}\n'.format(test_loss))
 
     all_classes_acc = []
     for i in range(10):
@@ -386,10 +399,10 @@ def run_test(model, test_data_loader, loss_fn, device):
         else:
             # cls_acc = 'Test Accuracy of %5s: N/A (no training examples)' % (classes[i])
             cls_acc = -1
-        print(cls_acc)
+        logging.info(cls_acc)
         all_classes_acc.append(cls_acc)
     total_acc = 100. * np.sum(class_correct) / np.sum(class_total)
-    print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
+    logging.info('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
         total_acc, np.sum(class_correct), np.sum(class_total)))
 
     return test_loss, total_acc, all_classes_acc, predictions, ground_truths
@@ -419,7 +432,7 @@ def print_trust_vals(trust_vals):
         trust2 += item[1][0]
         trust12 += item[2][0]
         count += 1
-    print(f"trust1: {trust1/count}, trust2: {trust2/count} and trust12: {trust12/count}")
+    logging.info(f"trust1: {trust1/count}, trust2: {trust2/count} and trust12: {trust12/count}")
 
 
 def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
@@ -427,7 +440,7 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     global base_path
     save_location = os.path.join(base_path, 'results/plots/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_AUROR{config['USE_AUROR']}_CSEP{config['CLUSTER_SEP']}_APLUS{config['USE_AUROR_PLUS']}"
+    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
 
     if config['COLLAB_MODE']:
         ## since in COLLAB_MODE multiple validation clients give trust value we don't have 1:1 ref for
@@ -450,23 +463,65 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender', barmode="group")
     histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
+def gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence, total_clients):
+    ## this function generate curves to show how trust of different clients change with every fedrounds
+    ## only showing iterations when cos_defence starts changing trusts
+    ## horizontal lines means either they were not selected in those rounds or the trust variation is very low
+    trust_scores = (np.array(trust_scores)*10000).astype(int)
+    client_types = ["honest" for _ in range(total_clients)]
+    for val_client in initial_validation_clients:
+        client_types[val_client] = "init_val"
+    for p_client in poisoned_clients:
+        client_types[p_client] = "poisoned"
+
+    # client_types = np.zeros(total_clients, dtype=int)
+    # client_types[initial_validation_clients] = -1
+    # client_types[poisoned_clients] = 1
+    logging.debug(f"client_types: {client_types}")
+
+    global config
+    fdrs = config['FED_ROUNDS']
+    trust_scores = trust_scores[start_cosdefence:]
+
+    trust_scores_df = pd.DataFrame(columns=["fed_round","trust_score", "client_id", "client_type"])
+    for client in range(total_clients):
+        temp_df = pd.DataFrame({"fed_round" : pd.Series(list(range(start_cosdefence, fdrs)), dtype="int"),
+                                "trust_score" : trust_scores[:, client],
+                                "client_id" : client,
+                                "client_type":client_types[client]})
+        trust_scores_df = trust_scores_df.append(temp_df, ignore_index=True)
+    logging.debug(trust_scores_df.shape)
+
+    ## plotting
+    global base_path
+    save_location = os.path.join(base_path, 'results/plots/')
+    current_time = time.localtime()
+    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
+
+
+    score_curves_fig = px.line(trust_scores_df, x="fed_round", y="trust_score", color="client_type",
+                                line_group="client_id", hover_name="client_id")
+    score_curves_fig.update_layout(title="Trust Score Evolution")
+    score_curves_fig.write_html(os.path.join(save_location,'{}_trust_score_curves_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+
 
 def trust_clustering(trust_vals, labels):
     trust_arr = np.array(trust_vals).reshape(-1, 1)
     kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
-    print(kmeans.cluster_centers_)
+    logging.info(kmeans.cluster_centers_)
     
 
 def start_fl(with_config):
     global config
     config = with_config
     ## config short summary
-    config_ss = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}"
+    config_ss = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}"
     
     global base_path
     logs_folder = os.path.join(base_path, 'logs/')
     logs_file = logs_folder + config_ss +'.log'
     logging.basicConfig(filename=logs_file, level=getattr(logging, config['LOG_LEVEL']))
+    logging.info(config)
 
 
 
@@ -475,10 +530,10 @@ def start_fl(with_config):
     global current_system_trust_mat
 
     ##global variables !! check when running multiple experiments together
-    current_system_trust_vec = set_initial_trust_vec("manual")
+    current_system_trust_vec = set_initial_trust_vec("normal")
 
     ## inital system trust need to be set using three type of distributions
-    current_system_trust_mat = set_initial_trust_mat("manual")
+    current_system_trust_mat = set_initial_trust_mat("normal")  #
 
     global aggregate_grads
     global grad_bank
@@ -504,6 +559,10 @@ def start_fl(with_config):
 
     ### End of global variable initializing block
 
+    ## trust scores of the system after every fed rounds are saved in this list
+    trust_scores = list()
+
+
     ## initializing global grad bank, based on model and layers selected
     layer_names = ['output_layer']
     for name in layer_names:
@@ -512,10 +571,10 @@ def start_fl(with_config):
 
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Computing Device:{device}")
-    seed = 43
-    rng = default_rng(seed)
-    # rng = default_rng()
+    logging.info(f"Computing Device:{device}")
+    seed = 42
+    rng1 = default_rng(seed)
+    rng2 = default_rng(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -525,16 +584,17 @@ def start_fl(with_config):
     if config['CREATE_DATASET']:
         create_client_data(config['DATASET'], config['CLASS_RATIO'])
 
-    if config['GRAD_COLLECT_FOR'] == -1:
-        ## -1 here tells that cos_defence should be started based on the dataset
-        if config['DATASET'] == 'mnist':
-            start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
-        elif config['DATASET'] == 'fmnist':
-            start_cosdefence = config['GRAD_COLLECTION_START'] + 2*int(1/config['CLIENT_FRAC'])
+    if config['COS_DEFENCE']:
+        if config['GRAD_COLLECT_FOR'] == -1:
+            ## -1 here tells that cos_defence should be started based on the dataset
+            if config['DATASET'] == 'mnist':
+                start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
+            elif config['DATASET'] == 'fmnist':
+                start_cosdefence = config['GRAD_COLLECTION_START'] + 2*int(1/config['CLIENT_FRAC'])
+            else:
+                start_cosdefence = config['GRAD_COLLECTION_START'] + 4 * int(1/config['CLIENT_FRAC'])
         else:
-            start_cosdefence = config['GRAD_COLLECTION_START'] + 4 * int(1/config['CLIENT_FRAC'])
-    else:
-        start_cosdefence = config['GRAD_COLLECTION_START'] + config['GRAD_COLLECT_FOR']
+            start_cosdefence = config['GRAD_COLLECTION_START'] + config['GRAD_COLLECT_FOR']
 
 
     ## this will return model based on selection
@@ -572,7 +632,7 @@ def start_fl(with_config):
         poisoned_clients = pinfo_data['poisoned_clients']
 
     if config['COS_DEFENCE']:
-        init_validation_clients(total_clients, poisoned_clients, rng)
+        initial_validation_clients = init_validation_clients(total_clients, poisoned_clients, rng2)
 
     ###Training and testing model every kth round
     testing_every = config['TEST_EVERY']
@@ -588,27 +648,34 @@ def start_fl(with_config):
     client_training_losses = [[] for i in range(total_clients)]
     avg_training_losses = [] # this saves the avg loss of the clients selected in one federated round
 
+
     ###
     ### Actual federated learning starts here
     ###
     for i in range(config['FED_ROUNDS']):
 
         ## selecting clients based on probability or always choose clients with highest trust
-        print(f"System trust vec sum: {current_system_trust_vec.sum()}")
-        # ## Don't know how it can be greater than one here, but to avoid probability error
-        # current_system_trust_vec /= current_system_trust_vec.sum()
-        if config['SEL_PROB']:
-            clients_selected = rng.choice(total_clients, p=current_system_trust_vec, size=int(total_clients * config['CLIENT_FRAC']), replace=False)
+        logging.info(f"System trust vec sum: {current_system_trust_vec.sum()}")
+        trust_scores.append(current_system_trust_vec.copy())
+        if config['COS_DEFENCE']:
+            if config['SEL_METHOD'] == 0:
+                clients_selected = rng1.choice(total_clients, size=int(total_clients * config['CLIENT_FRAC']), replace=False)
+            elif config['SEL_METHOD'] == 1:
+                clients_selected = rng1.choice(total_clients, p=current_system_trust_vec, size=int(total_clients * config['CLIENT_FRAC']), replace=False)
+            else:
+                top_trust_indices = np.argsort(current_system_trust_vec)[-(int(total_clients * config['CLIENT_FRAC'])):]
+                ## since out client ids are also numbered from 0 to 99
+                clients_selected = top_trust_indices
         else:
-            top_trust_indices = np.argsort(current_system_trust_vec)[-(int(total_clients * config['CLIENT_FRAC'])):]
-            ## since out client ids are also numbered from 0 to 99
-            clients_selected = top_trust_indices
+            ## when cos_defence is off then we always select randomly, to avoid selecting same clients every time
+            clients_selected = rng1.choice(total_clients, size=int(total_clients * config['CLIENT_FRAC']), replace=False)
 
-        print(f"selected clients in round {i}: {clients_selected}")
+
+        logging.info(f"selected clients in round {i}: {clients_selected}")
 
         poisoned_clients_selected = list(set(poisoned_clients) & set(clients_selected))
         
-        print(f"poisoned clients in round {i}: {poisoned_clients_selected}")
+        logging.info(f"poisoned clients in round {i}: {poisoned_clients_selected}")
         poisoned_clients_sel_in_round.append(len(poisoned_clients_selected))
 
         temp_training_losses = []
@@ -620,37 +687,50 @@ def start_fl(with_config):
         avg_training_losses.append(sum(temp_training_losses)/len(clients_selected))
 
         # if turned on we change the client_weights from normal to computed by CosDefence
-        print(f"CosDefence is On: {config['COS_DEFENCE']}")
+        logging.info(f"CosDefence is On: {config['COS_DEFENCE']}")
         if config['COS_DEFENCE']:
-            if i == config['GRAD_COLLECTION_START']:
-                save_for_feature_finding = True
-            elif i == start_cosdefence - 1:
-                indicative_grads, counts = find_indicative_grads(grad_bank, config['CLUSTER_SEP'])
-                save_for_feature_finding = False
-                collect_features = True
-                
-                ## this code is upload pre-calculated grad features.
-                # layer_names = ['fc1', 'fc2', 'output_layer']
+            if config["FEATURE_FINDING_ALGO"] == "none":
+                # cos_defence(clients_selected, poisoned_clients_selected, 0)
+                # ## since all the neural units are important in this case, we just need count of total model units
+                # ## not indicative grads, while collecting we'll collect all
                 # counts = 0
-                # for name in layer_names:
-                #     bias_arr = np.load(name + '.bias.npy')
-                #     weight_arr = np.load(name + '.weight.npy')
-                #     print(f"Indicative grad of {name} has sizes")
-                #     print(bias_arr.shape)
-                #     print(weight_arr.shape)
-                #     indicative_grads[name + '.bias'] = bias_arr
-                #     indicative_grads[name + '.weight'] = weight_arr
-                #     counts += np.count_nonzero(bias_arr)
-                #     counts += np.count_nonzero(weight_arr)
-                
-                ## initializing aggregate grads so that now these grads can ve collected as flat vector
-                for k in range(total_clients):
-                    aggregate_grads.append(torch.zeros(counts))
+                # for layer_name in grad_bank.keys():
+                #     counts += grad_bank[layer_name][0].size
+                # collect_features = True
+                # ## initializing aggregate grads so that now these grads can be collected as flat vector
+                # for k in range(total_clients):
+                #     aggregate_grads.append(torch.zeros(counts))
+                pass
+            else:
+                if i == config['GRAD_COLLECTION_START']:
+                    save_for_feature_finding = True
+                elif i == start_cosdefence - 1:
+                    indicative_grads, counts = find_indicative_grads(grad_bank, config['FEATURE_FINDING_ALGO'], config['CLUSTER_SEP'])
+                    save_for_feature_finding = False
+                    collect_features = True
+                    
+                    ## this code is upload pre-calculated grad features.
+                    # layer_names = ['fc1', 'fc2', 'output_layer']
+                    # counts = 0
+                    # for name in layer_names:
+                    #     bias_arr = np.load(name + '.bias.npy')
+                    #     weight_arr = np.load(name + '.weight.npy')
+                    #     logging.info(f"Indicative grad of {name} has sizes")
+                    #     logging.info(bias_arr.shape)
+                    #     logging.info(weight_arr.shape)
+                    #     indicative_grads[name + '.bias'] = bias_arr
+                    #     indicative_grads[name + '.weight'] = weight_arr
+                    #     counts += np.count_nonzero(bias_arr)
+                    #     counts += np.count_nonzero(weight_arr)
+                    
+                    ## initializing aggregate grads so that now these grads can ve collected as flat vector
+                    for k in range(total_clients):
+                        aggregate_grads.append(torch.zeros(counts))
 
-                print(f"Found {counts} indicative grads")
+                    logging.info(f"Found {counts} indicative grads")
 
-            elif i >= start_cosdefence:
-                cos_defence(client_models, clients_selected, poisoned_clients_selected, 0)
+                elif i >= start_cosdefence:
+                    cos_defence(clients_selected, poisoned_clients_selected, 0)
 
 
         ## Earlier weight setting strategy
@@ -668,12 +748,12 @@ def start_fl(with_config):
             weights = np.zeros(len(clients_selected), dtype=float)
             for j, client in enumerate(clients_selected):
                 weights[j] = client_weights[client]
-            print(f"Complete Trust vec {current_system_trust_vec}")
-            print(f"Trust value on computing cleints{current_system_trust_vec[clients_selected]}")
-            print(weights)
+            # logging.info(f"Complete Trust vec {current_system_trust_vec}")
+            logging.info(f"Trust value on computing cleints{current_system_trust_vec[clients_selected]}")
+            logging.info(weights)
             weights = weights/weights.sum()
 
-            for j, client in enumerate(clients_selected):
+            for j, client in enumerate(clients_selected): 
                 client_weights[client] = weights[j]
             client_weights = client_weights.to(device)
         else:
@@ -683,7 +763,7 @@ def start_fl(with_config):
 
         # aggregate to update server_model and client_models
         server_model, client_models = fed_avg(server_model, clients_selected, client_models, client_weights)
-        print(f"Round {i} complete")
+        logging.info(f"Round {i} complete")
     
         # Testing Model every kth round
         if (i + 1) % testing_every == 0:
@@ -701,10 +781,11 @@ def start_fl(with_config):
 
     if config['COS_DEFENCE']:
         gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
+        gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence, total_clients)
         trust_clustering(all_trust_vals, all_client_types)
 
     if config['JSON_RESULTS']:
-        print("We saved results in json file")
+        logging.info("We saved results in json file")
         # saving data inside result_data object, we'll dump it later in a file
         result_data = {}
         result_data['config'] = config
@@ -736,7 +817,7 @@ def start_fl(with_config):
 
         json_folder = os.path.join(base_path, 'results/json_files/')
         Path(json_folder).mkdir(parents=True, exist_ok=True)
-        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_LAYERS{config['CONSIDER_LAYERS']}_AUROR{config['USE_AUROR']}_CSEP{config['CLUSTER_SEP']}_APLUS{config['USE_AUROR_PLUS']}"
+        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_LAYERS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
         file_name = '{}_{}.txt'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
         with open(os.path.join(json_folder ,file_name), 'w') as result_file:
             json.dump(result_data, result_file)
