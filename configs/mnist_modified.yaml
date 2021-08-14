@@ -18,19 +18,20 @@ TEST_EVERY: 3 # test the model for accuracy after every 3rd round
 
 # COS_DEFENCE_SETTINGS
 COS_DEFENCE: True # to turn on cos_defence
-SEL_METHOD: 2  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
+SEL_METHOD: 1  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
 COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly assign trust
 CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
 FEATURE_FINDING_ALGO: auror_plus  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
 GRAD_COLLECTION_START: 0   # when to start collecting grads 
 GRAD_COLLECT_FOR: -1   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
-CLUSTER_SEP: 1.0   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
+CLUSTER_SEP: 2.0   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
 ALPHA: 0.5   # parameter for updating system trust vector
 BETA: 0.5    # parameter for updating system trust matrix
 GAMMA: 0.5   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-HONEST_PARDON_FACTOR: 0.2
+TRUST_CUT_METHOD: 0  # 0 for using clustering method to segregate, 1 for using median, mean, std method
+HONEST_PARDON_FACTOR: 0.3 # it decides how much you want to pardon good clients getting bad trust values
 
 
 # LOG

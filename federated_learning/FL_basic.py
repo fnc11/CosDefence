@@ -214,13 +214,24 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             comp_vec = copy.deepcopy(aggregate_grads[comp_client]).reshape(1, -1)
             comp_vec /= np.linalg.norm(comp_vec)
             comp_trusts.append((1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2)
-        
-        ## make 2 clusters assuming one for honest (with high similarity value) and one for malicious(with low similarity value)
+
         trust_arr = np.array(comp_trusts).reshape(-1, 1)
-        kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
-        honest_trust_threshold = np.max(kmeans.cluster_centers_)*(1 - config['HONEST_PARDON_FACTOR'])
-        trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0001)
-        
+        if config['TRUST_CUT_METHOD'] == 0:
+            ## make 2 clusters assuming one for honest (with high similarity value) and one for malicious(with low similarity value)
+            kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
+            kmeans_centers = kmeans.cluster_centers_
+            center_dist = abs(kmeans_centers[0] - kmeans_centers[1])
+            honest_trust_threshold = np.max(kmeans_centers)*(1 - config['HONEST_PARDON_FACTOR']*center_dist)
+        else:
+            ## AFA method
+            mean_val = np.mean(trust_arr)
+            median_val = np.median(trust_arr)
+            std_dev = np.std(trust_arr)
+            if mean_val >= median_val:
+                honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
+            else:
+                honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
+        trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.001)
         comp_trusts = list(trust_arr)
         for val_client, comp_client, new_trust_val in zip(validating_clients, computing_clients, comp_trusts):
             prev_val = new_system_trust_mat[val_client, comp_client]
@@ -655,7 +666,7 @@ def start_fl(with_config):
     for i in range(config['FED_ROUNDS']):
 
         ## selecting clients based on probability or always choose clients with highest trust
-        logging.info(f"System trust vec sum: {current_system_trust_vec.sum()}")
+        logging.debug(f"System trust vec sum: {current_system_trust_vec.sum()}")
         trust_scores.append(current_system_trust_vec.copy())
         if config['COS_DEFENCE']:
             if config['SEL_METHOD'] == 0:
