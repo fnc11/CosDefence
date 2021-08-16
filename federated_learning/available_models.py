@@ -7,6 +7,8 @@ from collections import OrderedDict
 class NNet(nn.Module):
     def __init__(self):
         super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['fc1', 'fc2', 'output_layer']
         # fc layers
         self.fc1 = nn.Linear(784, 128)
         self.fc2 = nn.Linear(128, 64)
@@ -24,6 +26,8 @@ class NNet(nn.Module):
 class BasicCNN0(nn.Module):
     def __init__(self):
         super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['conv1', 'conv2', 'fc1', 'output_layer']
         # conv layers 1,2
         self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
         self.conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -52,6 +56,8 @@ class BasicCNN0(nn.Module):
 class BasicCNN1(nn.Module):
     def __init__(self):
         super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['conv1', 'conv2', 'conv3', 'fc1', 'output_layer']
         # conv layers 1,2
         self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
@@ -83,6 +89,8 @@ class BasicCNN1(nn.Module):
 class BasicCNN2(nn.Module):
     def __init__(self):
         super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['conv11', 'conv12', 'conv21', 'conv22', 'conv31', 'conv32', 'fc1', 'output_layer']
         # conv layers 1,2
         self.conv11 = nn.Conv2d(3, 32, 3, padding=1)
         self.conv12 = nn.Conv2d(32, 32, 3, padding=1)
