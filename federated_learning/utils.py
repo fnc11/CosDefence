@@ -30,24 +30,32 @@ def cluster_params(param_arr, feature_finding_algo, sep):
                     _vals, counts = np.unique(labels, return_counts=True)
                     mins_list.append(np.min(counts))
 
-        if feature_finding_algo == "auror_plus" and len(mins_list) > 1:   
-            mins_arr = np.array(mins_list).reshape(-1, 1)
-            min_kmeans = KMeans(n_clusters=2, random_state=0).fit(mins_arr)
-            min_centers = min_kmeans.cluster_centers_
-            logging.debug(min_centers)
-            min_labels = min_kmeans.predict(mins_arr)
+        ## we go one step further, and filter out more nodes
+        if feature_finding_algo == "auror_plus":
+            if len(mins_list) > 1:   
+                mins_arr = np.array(mins_list).reshape(-1, 1)
+                min_kmeans = KMeans(n_clusters=2, random_state=0).fit(mins_arr)
+                min_centers = min_kmeans.cluster_centers_
+                logging.debug(min_centers)
+                min_labels = min_kmeans.predict(mins_arr)
 
-            ## cluster with less numbers
-            min_idx = np.argmin(min_centers)
-            
-            ## select only those nodes which are changed by less clients
-            k = 0
-            for idx in range(params):
-                if param_ids[idx]:
-                    param_ids[idx] = (min_labels[k] == min_idx)
+                ## cluster with less numbers
+                min_idx = np.argmin(min_centers)
+                
+                ## select only those nodes which are changed by less clients
+                k = 0
+                for idx in range(params):
+                    if param_ids[idx]:
+                        param_ids[idx] = (min_labels[k] == min_idx)
+                        if param_ids[idx]:
+                            node_count += 1
+                        k += 1
+            else:
+                ## this takes care the case where only one neural unit was found important in
+                ## that layer
+                for idx in range(params):
                     if param_ids[idx]:
                         node_count += 1
-                    k += 1
 
     return param_ids, node_count
 
