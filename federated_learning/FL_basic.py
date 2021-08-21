@@ -718,6 +718,7 @@ def start_fl(with_config):
     
     global base_path
     logs_folder = os.path.join(base_path, 'logs/')
+    Path(logs_folder).mkdir(parents=True, exist_ok=True)
     logs_file = logs_folder + config_ss +'.log'
     logging.basicConfig(filename=logs_file, level=getattr(logging, config['LOG_LEVEL']))
     logging.info(config)
@@ -1022,6 +1023,8 @@ def start_fl(with_config):
 
 
     ## generating various plots
+    plots_folder = os.path.join(base_path, 'results/plots/')
+    Path(plots_folder).mkdir(parents=True, exist_ok=True)
     gen_accuracy_poison_data_plot(attack_srates, source_class_accs, total_accs, poisoned_clients_sel_in_rounds)
     if config['COS_DEFENCE']:
         gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
