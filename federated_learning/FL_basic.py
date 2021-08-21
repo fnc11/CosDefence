@@ -139,7 +139,7 @@ def init_validation_clients(total_clients, poisoned_clients, rng):
 
     return validation_clients
 
-def eigen_trust(alpha=0.8, epsilon=0.000000001):
+def eigen_trust(alpha=0.5, epsilon=0.00001):
     logging.debug("In Eigen Trust")
     ## need to check their dimensions but for now we make it so that they can be multiplied
     global current_system_trust_mat
@@ -149,7 +149,7 @@ def eigen_trust(alpha=0.8, epsilon=0.000000001):
     pre_trust = np.copy(current_system_trust_vec)
     # logging.debug(pre_trust)
     
-    n = 1000
+    n = 100
     new_trust = pre_trust
     # delta_diffs = list()
     for i in range(n):
@@ -203,12 +203,13 @@ def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fil
             ## client i would have 100% trust on itself
             current_system_trust_mat[i][i] = (1+1)/200
 
-    ## also we give 100% trust between intial_validation_clients
+    ## also we give 100% trust between intial_validation_clients, since we starting with same initial trust 0.01
+    ## between all clients, we just add this extra trust
     num_validating_clients = len(initial_validation_clients)
     for i in range(num_validating_clients):
         for j in range(i+1, num_validating_clients):
-            current_system_trust_mat[initial_validation_clients[i]][initial_validation_clients[j]] = (1+1)/200
-            current_system_trust_mat[initial_validation_clients[j]][initial_validation_clients[i]] = (1+1)/200
+            current_system_trust_mat[initial_validation_clients[i]][initial_validation_clients[j]] += (1+1)/200
+            current_system_trust_mat[initial_validation_clients[j]][initial_validation_clients[i]] += (1+1)/200
     
     ## renormalizing the trust matrix
     sum_of_rows = current_system_trust_mat.sum(axis=1)
@@ -308,14 +309,14 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
         trust_arr = np.array(comp_trusts).reshape(-1, 1)
 
         ##This implementation needs to be done for individual mode scenario.
-        if config['TRUST_CUT_METHOD'] == 0:
+        if config['TRUST_CUT_METHOD'] == 1:
             ## make 2 clusters assuming one for honest (with high similarity value) and one for malicious(with low similarity value)
             kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
             kmeans_centers = kmeans.cluster_centers_
             center_dist = abs(kmeans_centers[0] - kmeans_centers[1])
             logging.info(f"Trust cluster diff: {center_dist}")
             honest_trust_threshold = np.max(kmeans_centers)*(1 - config['HONEST_PARDON_FACTOR']*center_dist)
-        else:
+        elif config['TRUST_CUT_METHOD'] == 2:
             ## AFA method
             mean_val = np.mean(trust_arr)
             median_val = np.median(trust_arr)
@@ -324,6 +325,9 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
                 honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
             else:
                 honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
+        else:
+            honest_trust_threshold = 0.0
+
         trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.001)
         comp_trusts = list(trust_arr)
         for val_client, comp_client, new_trust_val in zip(validating_clients, computing_clients, comp_trusts):
@@ -480,6 +484,10 @@ def run_test(model, test_data_loader, loss_fn, device):
     # Need to save these in case of final test
     predictions = []
     ground_truths = []
+    attack_scount = 0
+    attack_srate = 0
+    source_class = 2
+    target_class = 9
     # iterate over test data
     for data, target in test_data_loader:
         data, target = data.to(device), target.to(device)
@@ -502,6 +510,14 @@ def run_test(model, test_data_loader, loss_fn, device):
             label = target.data[i]
             class_correct[label] += correct[i].item()
             class_total[label] += 1
+            ## checking if attack was successful
+            if ground_truths[i] == source_class and pred_class[i] == target_class:
+                attack_scount += 1
+    
+    ## just making sure we had some example of source class
+    if class_total[source_class] > 0:
+        attack_srate =(100 * attack_scount)/class_total[source_class]
+    logging.info(f"Attack Success Rate: {attack_srate}")
     # average test loss
     test_loss = test_loss / len(test_data_loader.dataset)
     logging.debug('Test Loss: {:.6f}\n'.format(test_loss))
@@ -522,7 +538,7 @@ def run_test(model, test_data_loader, loss_fn, device):
     logging.info('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
         total_acc, np.sum(class_correct), np.sum(class_total)))
 
-    return test_loss, total_acc, all_classes_acc, predictions, ground_truths
+    return test_loss, total_acc, all_classes_acc, predictions, ground_truths, attack_srate
 
 
 def fed_avg(server_model, selected_clients, client_models, client_weights):
@@ -621,7 +637,7 @@ def gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients,
     score_curves_fig.update_layout(title="Trust Score Evolution")
     score_curves_fig.write_html(os.path.join(save_location,'{}_trust_score_curves_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
-def gen_accuracy_poison_data_plot(source_class_accuracy, total_accuracy, all_poisoned_client_selected):
+def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_accuracy, all_poisoned_client_selected):
     global config
     if config['DATASET'] == "mnist":
         if config['CLASS_RATIO'] == 10:
@@ -666,19 +682,22 @@ def gen_accuracy_poison_data_plot(source_class_accuracy, total_accuracy, all_poi
     config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
 
     testing_round = list(range(config['TEST_EVERY']-1, config['FED_ROUNDS'], config['TEST_EVERY']))
-    acc_poison_fig = make_subplots(rows=2, cols=1,
+    acc_poison_fig = make_subplots(rows=3, cols=1,
                             shared_xaxes=True,
-                            vertical_spacing=0.02)
+                            vertical_spacing=0.01)
 
-    acc_poison_fig.add_trace(go.Scatter(name='Total Accuracy', x=testing_round, y=total_accuracy),
+    acc_poison_fig.add_trace(go.Scatter(name='Total Accuracy', x=testing_round, y=total_accuracy, mode='lines+markers'),
                                 row=1, col=1)
-    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=source_class_accuracy),
+    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=source_class_accuracy, mode='lines+markers'),
                                 row=1, col=1)
 
     acc_poison_fig.add_trace(go.Bar(name='Poisoned Examples', x=testing_round, y=poisoned_examples),
                                 row=2, col=1)
 
-    acc_poison_fig.update_layout(height=1200, width=1000,
+    acc_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
+                                row=3, col=1)
+
+    acc_poison_fig.update_layout(height=800, width=1200,
                     title_text="Accuracy variations with poisoned examples")
     
     acc_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
@@ -748,29 +767,33 @@ def start_fl(with_config):
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Computing Device:{device}")
-    seed = 42
-    rng1 = default_rng(seed)
-    rng2 = default_rng(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    if config['RANDOM']:
+        rng1 = default_rng()
+        rng2 = default_rng()
+    else:
+        seed = 42
+        rng1 = default_rng(seed)
+        rng2 = default_rng(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
 
     # If this flag is set first client data is created
     if config['CREATE_DATASET']:
-        create_client_data(config['DATASET'], config['CLASS_RATIO'])
+        create_client_data(config['RANDOM'], config['DATASET'], config['CLASS_RATIO'])
 
-    if config['COS_DEFENCE']:
-        if config['GRAD_COLLECT_FOR'] == -1:
-            ## -1 here tells that cos_defence should be started based on the dataset
-            if config['DATASET'] == 'mnist':
-                start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
-            elif config['DATASET'] == 'fmnist':
-                start_cosdefence = config['GRAD_COLLECTION_START'] + 2*int(1/config['CLIENT_FRAC'])
-            else:
-                start_cosdefence = config['GRAD_COLLECTION_START'] + 4 * int(1/config['CLIENT_FRAC'])
+    # if config['COS_DEFENCE']:
+    if config['GRAD_COLLECT_FOR'] == -1:
+        ## -1 here tells that cos_defence should be started based on the dataset
+        if config['DATASET'] == 'mnist':
+            start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
+        elif config['DATASET'] == 'fmnist':
+            start_cosdefence = config['GRAD_COLLECTION_START'] + 2*int(1/config['CLIENT_FRAC'])
         else:
-            start_cosdefence = config['GRAD_COLLECTION_START'] + config['GRAD_COLLECT_FOR']
+            start_cosdefence = config['GRAD_COLLECTION_START'] + 4 * int(1/config['CLIENT_FRAC'])
+    else:
+        start_cosdefence = config['GRAD_COLLECTION_START'] + config['GRAD_COLLECT_FOR']
 
 
     ## this will return model based on selection
@@ -808,7 +831,11 @@ def start_fl(with_config):
     data_folder = os.path.join(base_path, f"data/{config['DATASET']}/fed_data/label_flip0/poisoned_{int(config['POISON_FRAC']*100)}CLs/")
 
     # specify learning rate to be used
-    learning_rate = config['LEARNING_RATE']  # change this according to our model, tranfer learning use 0.001, basic model use 0.01
+    if config['COS_DEFENCE']:
+        ## we'll increase it, after cos_defence starts working
+        learning_rate = config['LEARNING_RATE']/10
+    else:
+        learning_rate = config['LEARNING_RATE']  # change this according to our model, tranfer learning use 0.001, basic model use 0.01
     if config['OPTIMIZER'] == 'sgd':
         optimizers = [optim.SGD(params=client_models[idx].parameters(), lr=learning_rate) for idx in range(total_clients)]
     else:
@@ -831,6 +858,7 @@ def start_fl(with_config):
     testing_losses = []
     total_accs = []
     source_class_accs = []
+    attack_srates = []
     classes_accs = []
     classes_precisions = []
     classes_recalls = []
@@ -853,6 +881,12 @@ def start_fl(with_config):
         logging.debug(f"System trust vec sum: {current_system_trust_vec.sum()}")
         trust_scores.append(current_system_trust_vec.copy())
         if config['COS_DEFENCE']:
+            ## increase the learning rate now
+            if i == start_cosdefence:
+                for optimizer in optimizers:
+                    for op_grp in optimizer.param_groups:
+                        op_grp['lr'] = config['LEARNING_RATE']
+
             if i >= start_cosdefence:
                 if config['SEL_METHOD'] == 0:
                     clients_selected = rng1.choice(total_clients, size=int(total_clients * config['CLIENT_FRAC']), replace=False)
@@ -939,12 +973,9 @@ def start_fl(with_config):
                     ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
                     fill_initial_trust(clients_selected)
 
-        ## Earlier weight setting strategy
-        # client_weights = [1 / (len(clients_selected)) for i in range(total_clients)]  # need to check about this
-        # client_weights = torch.tensor(client_weights)
 
-        # ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning
-        # ## it changes the weights of the client selected, if not initial trust vec will be used.
+        ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning
+        ## it changes the weights of the client selected, if not initial trust vec will be used.
         if config['COS_DEFENCE'] and i >= start_cosdefence:
             client_weights = np.copy(current_system_trust_vec)
             client_weights = torch.from_numpy(client_weights)
@@ -973,42 +1004,53 @@ def start_fl(with_config):
     
         # Testing Model every kth round
         if (i + 1) % config['TEST_EVERY'] == 0:
-            testing_loss, total_acc, classes_acc, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
+            testing_loss, total_acc, classes_acc, predictions, ground_truths, attack_srate = run_test(server_model, test_data_loader, loss_fn, device)
             cls_precisions, cls_recalls, cls_f1scores, cls_supports = metrics.precision_recall_fscore_support(ground_truths, predictions, average=None, zero_division=1)
-            classes_precisions.append(cls_precisions.tolist())
-            classes_recalls.append(cls_recalls.tolist())
+            # classes_precisions.append(cls_precisions.tolist())
+            # classes_recalls.append(cls_recalls.tolist())
             classes_f1scores.append(cls_f1scores.tolist())
-            classes_supports.append(cls_supports.tolist())
+            # classes_supports.append(cls_supports.tolist())
             # we store "weighted" average values of precision, recall, f1score and support in this list.
             avg_metric_vals.append(metrics.precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1))
-            testing_losses.append(testing_loss)
+            # testing_losses.append(testing_loss)
             ## saving total and source classes accuracy separately which we can plot later.
             total_accs.append(total_acc)
             source_class_accs.append(classes_acc[2])
+            attack_srates.append(attack_srate)
             classes_accs.append(classes_acc)
 
-    gen_accuracy_poison_data_plot(source_class_accs, total_accs, poisoned_clients_sel_in_rounds)
+
+    ## generating various plots
+    gen_accuracy_poison_data_plot(attack_srates, source_class_accs, total_accs, poisoned_clients_sel_in_rounds)
     if config['COS_DEFENCE']:
         gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
         gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence, total_clients)
         trust_clustering(all_trust_vals, all_client_types)
+
+    mean_poison_class_acc = np.mean(np.array(source_class_accs[start_cosdefence:]))
+    mean_attack_srate = np.mean(np.array(attack_srates[start_cosdefence:]))
+    logging.info(f"Mean Poison class accuracy: {mean_poison_class_acc}")
+    logging.info(f"Mean Attack success rate: {mean_attack_srate}")
 
     if config['JSON_RESULTS']:
         logging.info("We saved results in json file")
         # saving data inside result_data object, we'll dump it later in a file
         result_data = {}
         result_data['config'] = config
-        result_data['avg_training_losses'] = avg_training_losses
-        result_data['training_losses'] = client_training_losses
-        result_data['testing_losses'] = testing_losses
+        result_data['mean_poison_class_acc'] = mean_poison_class_acc
+        result_data['mean_attack_srate'] = mean_attack_srate
+        # result_data['avg_training_losses'] = avg_training_losses
+        # result_data['training_losses'] = client_training_losses
+        # result_data['testing_losses'] = testing_losses
         result_data['total_accuracies'] = total_accs
         result_data['class_accuracies'] = classes_accs
+        
 
         # storing classwise precision, recall, f1score ans support for every testing round
-        result_data['class_precisions'] = classes_precisions
-        result_data['class_recalls'] = classes_recalls
+        # result_data['class_precisions'] = classes_precisions
+        # result_data['class_recalls'] = classes_recalls
         result_data['class_f1scores'] = classes_f1scores
-        result_data['class_supports'] = classes_supports
+        # result_data['class_supports'] = classes_supports
         result_data['avg_metric_vals'] = avg_metric_vals
 
         # posioned_clients_selected in each round is also stored
@@ -1016,17 +1058,21 @@ def start_fl(with_config):
 
         # one final test is run and data is saved
         final_test_data = {}
-        testing_loss, total_acc, classes_acc, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
-        final_test_data['testing_loss'] = testing_loss
+        testing_loss, total_acc, classes_acc, predictions, ground_truths, attack_srate = run_test(server_model, test_data_loader, loss_fn, device)
+        final_test_data['poison_class_acc'] = classes_acc[2]
+        final_test_data['attack_state'] = attack_srate
+        # final_test_data['testing_loss'] = testing_loss
         final_test_data['total_acc'] = total_acc
         final_test_data['classes_acc'] = classes_acc
-        final_test_data['predictions'] = predictions
-        final_test_data['ground_truths'] = ground_truths
+        # final_test_data['predictions'] = predictions
+        # final_test_data['ground_truths'] = ground_truths
         result_data['final_test_data'] = final_test_data
 
         json_folder = os.path.join(base_path, 'results/json_files/')
         Path(json_folder).mkdir(parents=True, exist_ok=True)
-        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_LAYERS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-        file_name = '{}_{}.txt'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
+        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}"
+        file_name = '{}_{}.json'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
         with open(os.path.join(json_folder ,file_name), 'w') as result_file:
             json.dump(result_data, result_file)
+
+    return attack_srates, source_class_accs, total_accs, mean_attack_srate, mean_poison_class_acc
