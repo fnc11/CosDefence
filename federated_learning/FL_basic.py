@@ -573,8 +573,7 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     global base_path
     save_location = os.path.join(base_path, 'results/plots/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-
+    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
     if config['COLLAB_MODE']:
         ## since in COLLAB_MODE multiple validation clients give trust value we don't have 1:1 ref for
         ## computing client who gave them trust value
@@ -629,8 +628,7 @@ def gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients,
     global base_path
     save_location = os.path.join(base_path, 'results/plots/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-
+    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
 
     score_curves_fig = px.line(trust_scores_df, x="fed_round", y="trust_score", color="client_type",
                                 line_group="client_id", hover_name="client_id")
@@ -679,7 +677,7 @@ def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_ac
     global base_path
     save_location = os.path.join(base_path, 'results/plots/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
+    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
 
     testing_round = list(range(config['TEST_EVERY']-1, config['FED_ROUNDS'], config['TEST_EVERY']))
     acc_poison_fig = make_subplots(rows=3, cols=1,
@@ -855,15 +853,11 @@ def start_fl(with_config):
         initial_validation_clients = init_validation_clients(total_clients, poisoned_clients, rng2)
 
     ###Training and testing model every kth round
-    testing_losses = []
     total_accs = []
     source_class_accs = []
     attack_srates = []
     classes_accs = []
-    classes_precisions = []
-    classes_recalls = []
     classes_f1scores = []
-    classes_supports = []
     avg_metric_vals = []
     poisoned_clients_sel_in_rounds = []
     client_training_losses = [[] for i in range(total_clients)]
@@ -871,6 +865,7 @@ def start_fl(with_config):
 
     ## boolean flag used to check if trust mat and vec was initialized using similarity between grads of clients
     trust_initialized = False
+    selected_hq = np.ones((total_clients), dtype=float)
 
     ###
     ### Actual federated learning starts here
@@ -893,9 +888,15 @@ def start_fl(with_config):
                 elif config['SEL_METHOD'] == 1:
                     clients_selected = rng1.choice(total_clients, p=current_system_trust_vec, size=int(total_clients * config['CLIENT_FRAC']), replace=False)
                 else:
-                    top_trust_indices = np.argsort(current_system_trust_vec)[-(int(total_clients * config['CLIENT_FRAC'])):]
+                    top_trust_indices = np.argsort(current_system_trust_vec + selected_hq)[-(int(total_clients * config['CLIENT_FRAC'])):]
                     ## since out client ids are also numbered from 0 to 99
                     clients_selected = top_trust_indices
+                    ## increase the history quotient for all clients by a factor of 0.005, this factor
+                    ## that if a client wants to be get selected each time he has to do better than 50% 
+                    ## similarity
+                    selected_hq += 0.007
+                    ## now for the selected clients make this value 1.0 (initial val)
+                    np.put(selected_hq, clients_selected, 1.0)
             else:
                 ## until cos_defence starts we want as much different clients to be selected to effectively fill trust
                 ## matrix and trust vec

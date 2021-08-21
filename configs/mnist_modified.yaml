@@ -35,6 +35,7 @@ TRUST_CUT_METHOD: 1  # 0 for none, 1 for using clustering method to segregate, 2
 HONEST_PARDON_FACTOR: 0.99 # it decides how much you want to pardon good clients getting bad trust values
 
 
+
 # LOG
 LOG_LEVEL: 'INFO' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
 JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization

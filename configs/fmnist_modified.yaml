@@ -12,13 +12,13 @@ LEARNING_RATE: 0.001 # client's model learning rate
 BATCH_SIZE: 32 # client model parameter
 LOCAL_EPOCHS: 3 # epochs to run before clients send back the model update
 OPTIMIZER: "adam" # client model parameter
-FED_ROUNDS: 100 # federated rounds to run
+FED_ROUNDS: 60 # federated rounds to run
 TEST_EVERY: 1 # test the model for accuracy after every 3rd round
-
+RANDOM: False # to select candidates randomly or with fixed seed 42 
 
 # COS_DEFENCE_SETTINGS
 COS_DEFENCE: True # to turn on cos_defence
-SEL_METHOD: 3  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
+SEL_METHOD: 2  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
 COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly assign trust
 CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
