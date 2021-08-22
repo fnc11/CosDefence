@@ -161,4 +161,19 @@ def get_model(name):
     else:
         return BasicCNN2()
 
-    
+
+def get_selected_layers(layer_names, consider_layers):
+    if consider_layers == 'l1':
+        return [layer_names[-1]]
+    elif consider_layers == 'l2':
+        return layer_names[-2:]
+    elif consider_layers == 'f1':
+        return [layer_names[0]]
+    elif consider_layers == 'f2':
+        return layer_names[0:2]
+    elif consider_layers == 'f1l1':
+        return [layer_names[0], layer_names[-1]]
+    elif consider_layers == 'f2l2':
+        return layer_names[0:2] + layer_names[-2:0]
+    else:
+        return layer_names

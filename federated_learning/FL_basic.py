@@ -1,5 +1,5 @@
 import copy
-from utils import find_indicative_grads, get_selected_layers
+from utils import find_indicative_grads
 import time
 import os
 import logging
@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 from prepare_data import create_client_data, create_client_data_loaders, get_test_data_loader
-from available_models import get_model
+from available_models import get_model, get_selected_layers
 import json
 from sklearn import metrics
 from sklearn.cluster import KMeans
