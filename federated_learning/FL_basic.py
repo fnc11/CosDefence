@@ -1,6 +1,5 @@
 import copy
-from utils import find_indicative_grads
-from operator import mod, mul
+from utils import find_indicative_grads, get_selected_layers
 import time
 import os
 import logging
@@ -39,6 +38,7 @@ current_system_trust_mat = None
 
 ## global grads, stores aggregated values of the grads, we will initialize it based on the number of parameters it stores
 ## e.g. last layer of the model
+sel_layer_names = None
 aggregate_grads = None
 initial_aggregate_grads = None
 
@@ -390,14 +390,14 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
 
 def train_on_client(idx, model, data_loader, optimizer, loss_fn, device):
     global config
+    global sel_layer_names
     model.train()
     epoch_training_losses = []
 
     epoch_grad_bank = dict()
-    # epoch_grad_bank['fc1.weight'] = torch.zeros(model.fc1.weight.size())
-    # epoch_grad_bank['fc1.bias'] = torch.zeros(model.fc1.bias.size())
-    epoch_grad_bank['output_layer.weight'] = torch.zeros(model.output_layer.weight.size())
-    epoch_grad_bank['output_layer.bias'] = torch.zeros(model.output_layer.bias.size())
+    for layer_name in sel_layer_names:
+        epoch_grad_bank[f'{layer_name}.weight'] = torch.zeros(getattr(model, layer_name).weight.size())
+        epoch_grad_bank[f'{layer_name}.bias'] = torch.zeros(getattr(model, layer_name).bias.size())
 
 
     for epoch in range(config['LOCAL_EPOCHS']):
@@ -413,10 +413,9 @@ def train_on_client(idx, model, data_loader, optimizer, loss_fn, device):
             loss = loss_fn(output, target)
             # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
-            # epoch_grad_bank['fc1.weight'] += model.fc1.weight.grad.detach().clone().cpu()
-            # epoch_grad_bank['fc1.bias'] += model.fc1.bias.grad.detach().clone().cpu()
-            epoch_grad_bank['output_layer.weight'] += model.output_layer.weight.grad.detach().clone().cpu()
-            epoch_grad_bank['output_layer.bias'] += model.output_layer.bias.grad.detach().clone().cpu()
+            for layer_name in sel_layer_names:
+                epoch_grad_bank[f'{layer_name}.weight'] += getattr(model, layer_name).weight.grad.detach().clone().cpu()
+                epoch_grad_bank[f'{layer_name}.bias'] += getattr(model, layer_name).bias.grad.detach().clone().cpu()
 
 
             # perform a single optimization step (parameter update)
@@ -803,16 +802,18 @@ def start_fl(with_config):
     server_model = server_model.to(device)
 
     ## initializing global grad bank, based on model and layers selected
-    layer_names = ['output_layer']
-    for name in layer_names:
-        grad_bank[name + '.weight'] = list()
-        grad_bank[name + '.bias'] = list()
+    global sel_layer_names
+    sel_layer_names = get_selected_layers(server_model.layer_names, config['CONSIDER_LAYERS'])
+    for layer_name in sel_layer_names:
+        grad_bank[layer_name + '.weight'] = list()
+        grad_bank[layer_name + '.bias'] = list()
     
     initial_aggregate_grads = list()
     init_grad_vec_size = 0
     ## need to make based on the layer selected
-    init_grad_vec_size += torch.numel(server_model.output_layer.weight)
-    init_grad_vec_size += torch.numel(server_model.output_layer.bias)
+    for layer_name in sel_layer_names:
+        init_grad_vec_size += torch.numel(getattr(server_model, layer_name).weight)
+        init_grad_vec_size += torch.numel(getattr(server_model, layer_name).bias)
     # print(f"Initial grad vec size: { init_grad_vec_size}")
     for client in range(100):
         initial_aggregate_grads.append(torch.zeros((1, init_grad_vec_size)))

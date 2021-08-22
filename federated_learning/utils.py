@@ -90,3 +90,21 @@ def find_indicative_grads(grad_bank, feature_finding_algo="auror", cluster_sep=0
             np.save(f, feature_arr)
     
     return ind_grad_dict, count
+
+
+
+def get_selected_layers(layer_names, selected_layers):
+    if selected_layers == 'l1':
+        return [layer_names[-1]]
+    elif selected_layers == 'l2':
+        return layer_names[-2:]
+    elif selected_layers == 'f1':
+        return [layer_names[0]]
+    elif selected_layers == 'f2':
+        return layer_names[0:2]
+    elif selected_layers == 'f1l1':
+        return [layer_names[0], layer_names[-1]]
+    elif selected_layers == 'f2l2':
+        return layer_names[0:2] + layer_names[-2:0]
+    else:
+        return layer_names
