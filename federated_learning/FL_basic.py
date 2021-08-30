@@ -342,11 +342,11 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             all_trust_vals.append(new_trust_val)
             client_ids.append(comp_client)
             if comp_client in poisoned_clients:
-                client_type = 1
+                client_type = "minor_offender"
                 if comp_client//2 == 2:
-                    client_type = 2
+                    client_type = "major_offender"
             else:
-                client_type = 0
+                client_type = "honest"
             all_client_types.append(client_type)
     else:
         for val_client in validating_clients:
@@ -366,11 +366,11 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
                     client_ids.append(comp_client)
                     validation_client_ids.append(val_client)
                     if comp_client in poisoned_clients:
-                        client_type = 1
+                        client_type = "minor_offender"
                         if comp_client//2 == 2:
-                            client_type = 2
+                            client_type = "major_offender"
                     else:
-                        client_type = 0
+                        client_type = "honest"
                     all_client_types.append(client_type) 
             
     ## we need to normalize the new_system_trust_mat row wise
@@ -575,8 +575,10 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     global config
     global base_path
     save_location = os.path.join(base_path, 'results/plots/')
+    dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
     config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
+
     if config['COLLAB_MODE']:
         ## since in COLLAB_MODE multiple validation clients give trust value we don't have 1:1 ref for
         ## computing client who gave them trust value
@@ -586,16 +588,23 @@ def gen_trust_plots(client_ids, validation_client_ids, trust_vals, labels):
     
     trust_df = pd.DataFrame.from_dict(trust_data)
     trust_df['modified_trust'] = trust_df['trust_val'].apply(lambda x: int(x*10000))
+    trust_df.to_pickle(f'{dataframe_location}trust_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
 
 
     ## 1 D Data strip
-    strip_fig = px.strip(trust_df, x="modified_trust", y="client_label")
-    strip_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender')
+    strip_fig = px.strip(trust_df, x="modified_trust", y="client_label", color="client_label", color_discrete_map={
+                "honest": '#00CC96',
+                "minor_offender": '#EF553B',
+                "major_offender": '#AB63FA'})
+    strip_fig.update_layout(title='Trust given by validation clients')
     strip_fig.write_html(os.path.join(save_location,'{}_trust_strip_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
     ## histogram of trust vals
-    histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label")
-    histo_fig.update_layout(title='Trust given by validation clients, 0-> honest, 1-> minor offender, 2-> major offender', barmode="group")
+    histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label", color_discrete_map={
+                "honest": '#00CC96',
+                "minor_offender": '#EF553B',
+                "major_offender": '#AB63FA'})
+    histo_fig.update_layout(title='Trust given by validation clients', barmode="group")
     histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
 def gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence, total_clients):
@@ -629,12 +638,17 @@ def gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients,
 
     ## plotting
     global base_path
-    save_location = os.path.join(base_path, 'results/plots/')
+    dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
     config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-
+    trust_scores_df.to_pickle(f'{dataframe_location}trust_scores_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
+    
+    save_location = os.path.join(base_path, 'results/plots/')
     score_curves_fig = px.line(trust_scores_df, x="fed_round", y="trust_score", color="client_type",
-                                line_group="client_id", hover_name="client_id")
+                                line_group="client_id", hover_name="client_id", color_discrete_map={
+                                "init_val": '#00CC96',
+                                "honest": '#636EFA',
+                                "poisoned": '#EF553B'})
     score_curves_fig.update_layout(title="Trust Score Evolution")
     score_curves_fig.write_html(os.path.join(save_location,'{}_trust_score_curves_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
@@ -675,14 +689,23 @@ def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_ac
             else:
                 poisoned_data_in_round += minor_class_examples
         poisoned_examples.append(poisoned_data_in_round)
-    
-    ## plotting
+
+    ## saving this plot data in order to later compare two plots if we need to
     global base_path
-    save_location = os.path.join(base_path, 'results/plots/')
     current_time = time.localtime()
     config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-
+    
     testing_round = list(range(config['TEST_EVERY']-1, config['FED_ROUNDS'], config['TEST_EVERY']))
+    dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
+    accuracy_poison_df = pd.DataFrame()
+    accuracy_poison_df['testing_round'] = testing_round
+    accuracy_poison_df['total_accuracy'] = total_accuracy
+    accuracy_poison_df['source_class_accuracy'] = source_class_accuracy
+    accuracy_poison_df['attack_srates'] = attack_srates
+    accuracy_poison_df.to_pickle(f'{dataframe_location}accuracy_poison_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
+    
+    ## plotting
+    save_location = os.path.join(base_path, 'results/plots/')
     acc_poison_fig = make_subplots(rows=3, cols=1,
                             shared_xaxes=True,
                             vertical_spacing=0.01)
@@ -698,8 +721,8 @@ def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_ac
     acc_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
                                 row=3, col=1)
 
-    acc_poison_fig.update_layout(height=800, width=1200,
-                    title_text="Accuracy variations with poisoned examples")
+    acc_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#DC587D', '#00B5F7'],
+                                title_text="Accuracy variations with poisoned examples")
     
     acc_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
@@ -1030,6 +1053,8 @@ def start_fl(with_config):
     ## generating various plots
     plots_folder = os.path.join(base_path, 'results/plots/')
     Path(plots_folder).mkdir(parents=True, exist_ok=True)
+    dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
+    Path(dataframe_location).mkdir(parents=True, exist_ok=True)
     gen_accuracy_poison_data_plot(attack_srates, source_class_accs, total_accs, poisoned_clients_sel_in_rounds)
     if config['COS_DEFENCE']:
         gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)

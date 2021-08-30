@@ -67,17 +67,16 @@ def main():
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
         config['COS_DEFENCE'] = False
+        config['RANDOM'] = True
         summary_data_list.append(run_and_summarize(config, 2))
         
         
         ## now after turning cos_defence on
         config['COS_DEFENCE'] = True
+        # config['CREATE_DATASET'] = False
         ## trying out the method
-        config['SEL_METHOD'] = 0
         summary_data_list.append(run_and_summarize(config, 2))
-        config['SEL_METHOD'] = 1
-        summary_data_list.append(run_and_summarize(config, 2))
-        config['SEL_METHOD'] = 2
+        config['COLLAB_ALL'] = True
         summary_data_list.append(run_and_summarize(config, 2))
 
 
