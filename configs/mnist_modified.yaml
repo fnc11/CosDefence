@@ -1,7 +1,7 @@
 # FL_DATA
 DATASET: "mnist"
-CLIENT_FRAC: 0.2 # client fraction to select in each round 0.1|0.2|0.4|1.0
-POISON_FRAC: 0.4 # poisoned fraction for environment 0.0|0.1|0.2|0.4
+CLIENT_FRAC: 0.2 # client fraction to select in each round 0.1|0.2|0.4
+POISON_FRAC: 0.3 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5
 CREATE_DATASET: False # if true it creates FL Dataset
 CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
 
@@ -18,8 +18,8 @@ RANDOM: False # to select candidates randomly or with fixed seed 42
 
 
 # COS_DEFENCE_SETTINGS
-COS_DEFENCE: True # to turn on cos_defence
-SEL_METHOD: 2  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
+COS_DEFENCE: False # to turn on cos_defence
+SEL_METHOD: 1  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
 COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly assign trust
 CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
