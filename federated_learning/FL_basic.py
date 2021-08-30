@@ -277,12 +277,16 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
     global current_system_trust_mat
     global current_system_trust_vec
 
-    ## first identify validation clients from computing clients, we assume half of the computing clients as
-    ## validation clients, top k values
-    system_trust_vals = np.array(current_system_trust_vec.copy())
-    selected_client_trust_vals = system_trust_vals[computing_clients]
-    val_client_num = int(len(computing_clients)/2)
-    validating_clients = computing_clients[np.argsort(selected_client_trust_vals)[-val_client_num:]]
+    if config['COLLAB_ALL']:
+        validating_clients = computing_clients
+    else:
+        ## first identify validation clients from computing clients, we assume half of the computing clients as
+        ## validation clients, top k values
+        system_trust_vals = np.array(current_system_trust_vec.copy())
+        selected_client_trust_vals = system_trust_vals[computing_clients]
+        val_client_num = int(len(computing_clients)/2)
+        validating_clients = computing_clients[np.argsort(selected_client_trust_vals)[-val_client_num:]]
+    
     logging.info(f"Validating client selected: {validating_clients}")
     
 
