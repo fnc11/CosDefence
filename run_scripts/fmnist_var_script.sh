@@ -2,11 +2,11 @@
 ### ask for 10 GB memory
 #SBATCH --mem-per-cpu=10G   #M is the default and can therefore be omitted, but could also be K(ilo)|G(iga)|T(era)
 ### name the job
-#SBATCH --job-name=cifar10
+#SBATCH --job-name=fmnist
 ### job run time
 #SBATCH --time=10:00:00
 ### declare the merged STDOUT/STDERR file
-#SBATCH --output=cifar10_logs.%J.txt
+#SBATCH --output=fmnist_logs.%J.txt
 ###
 #SBATCH --mail-type=ALL
 ###
@@ -25,6 +25,6 @@ module load cudnn/8.0.5
 # pip3 install --user -U scikit-learn
 # pip3 install plotly
 # pip3 install -U kaleido
-# pip3 install pyyaml
+# pip3 instal pyyaml
 
-python3 run_config.py cifar10_modified.yaml
+python3 run_config_variations.py fmnist_default.yaml
