@@ -5,6 +5,7 @@ import json
 import os
 import yaml
 import numpy as np
+import copy
 
 from FL_basic import start_fl
 
@@ -38,7 +39,7 @@ def run_and_summarize(config, times):
     print(f"attack_states_end: {np.mean(attack_srates_end)} +- {np.std(attack_srates_end)}")
 
     summary_data = {}
-    summary_data['config'] = config
+    summary_data['config'] = copy.deepcopy(config)
     summary_data['mean_mean_attack_srates'] = np.mean(mean_attack_srates)
     summary_data['std_mean_attack_srates'] = np.std(mean_attack_srates)
 
@@ -70,9 +71,9 @@ def main():
         config['CLIENT_FRAC'] = 0.2
         config['CREATE_DATASET'] = False
 
-        p_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        p_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         # p_list = [0.6]
-        repeat = 5
+        repeat = 10
         for poison_var in p_list:
             config['POISON_FRAC'] = poison_var
 

@@ -124,7 +124,7 @@ def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio
         lbl_data = torch.stack(client_lbl_tensors[i])
         client_data.append((img_data, lbl_data))  # If we want to save as tuple or tensor we can decide
 
-    poison_params = [0, 10, 20, 30, 40, 50, 60]  # no of clients poisoned out of 100
+    poison_params = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]  # no of clients poisoned out of 100
     label_flips = [(2, 9)]
     total_clients = 100
     if random_setting:
