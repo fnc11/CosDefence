@@ -4,9 +4,11 @@ from torchvision import models
 
 from collections import OrderedDict
 
-class BasicFCN(nn.Module):
+class NNet(nn.Module):
     def __init__(self):
-        super(BasicFCN, self).__init__()
+        super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['fc1', 'fc2', 'output_layer']
         # fc layers
         self.fc1 = nn.Linear(784, 128)
         self.fc2 = nn.Linear(128, 64)
@@ -21,11 +23,41 @@ class BasicFCN(nn.Module):
         x = self.output_layer(x)
         return x
 
-
-
-class BasicCNN(nn.Module):
+class BasicCNN0(nn.Module):
     def __init__(self):
-        super(BasicCNN, self).__init__()
+        super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['conv1', 'conv2', 'fc1', 'output_layer']
+        # conv layers 1,2
+        self.conv1 = nn.Conv2d(1, 32, 3, padding=1)
+        self.conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # max pooling layer
+        self.pool = nn.MaxPool2d(2, 2)
+        # FC layers 1, 2, after Max pooling applied 3 times the size will be 4x4x128
+        self.fc1 = nn.Linear(7 * 7 * 32, 128)
+        self.output_layer = nn.Linear(128, 10)
+        # drop out layer with p=0.2
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
+
+    def forward(self, x):
+        # passing through Convolution and max pooling
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.dropout1(x)
+        # flattening the image
+        x = x.view(-1, 7 * 7 * 32)
+        x = F.relu(self.fc1(x))
+        x = self.dropout2(x)
+        # final class scores are sent as it is
+        x = self.output_layer(x)
+        return x
+
+class BasicCNN1(nn.Module):
+    def __init__(self):
+        super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['conv1', 'conv2', 'conv3', 'fc1', 'output_layer']
         # conv layers 1,2
         self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
         self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
@@ -33,8 +65,8 @@ class BasicCNN(nn.Module):
         # max pooling layer
         self.pool = nn.MaxPool2d(2, 2)
         # FC layers 1, 2, after Max pooling applied 3 times the size will be 4x4x128
-        self.fc1 = nn.Linear(4 * 4 * 128, 500)
-        self.output_layer = nn.Linear(500, 10)
+        self.fc1 = nn.Linear(4 * 4 * 128, 216)
+        self.output_layer = nn.Linear(216, 10)
         # drop out layer with p=0.2
         self.dropout = nn.Dropout(0.2)
 
@@ -53,6 +85,47 @@ class BasicCNN(nn.Module):
         x = self.output_layer(x)
         return x
 
+
+class BasicCNN2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        ## save names of all layers in this list
+        self.layer_names = ['conv11', 'conv12', 'conv21', 'conv22', 'conv31', 'conv32', 'fc1', 'output_layer']
+        # conv layers 1,2
+        self.conv11 = nn.Conv2d(3, 32, 3, padding=1)
+        self.conv12 = nn.Conv2d(32, 32, 3, padding=1)
+
+        self.conv21 = nn.Conv2d(32, 64, 3, padding=1)
+        self.conv22 = nn.Conv2d(64, 64, 3, padding=1)
+
+        self.conv31 = nn.Conv2d(64, 128, 3, padding=1)
+        self.conv32 = nn.Conv2d(128, 128, 3, padding=1)
+        # max pooling layer 
+        self.pool = nn.MaxPool2d(2, 2)
+        # FC layers 1, 2, after Max pooling applied 3 times the size will be 4x4x128
+        self.fc1 = nn.Linear(4 * 4 * 128, 128)
+        self.output_layer = nn.Linear(128, 10)
+        # drop out layer with p=0.2
+        self.dropout = nn.Dropout(0.2)
+
+    def forward(self, x):
+        # passing through Convolution and max pooling
+        x = F.relu(self.conv11(x))
+        x = self.pool(F.relu(self.conv12(x)))
+        x = self.dropout(x)
+        x = F.relu(self.conv21(x))
+        x = self.pool(F.relu(self.conv22(x)))
+        x = self.dropout(x)
+        x = F.relu(self.conv31(x))
+        x = self.pool(F.relu(self.conv32(x)))
+        x = self.dropout(x)
+        # flattening the image
+        x = x.view(-1, 4 * 4 * 128)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        # final class scores are sent as it is
+        x = self.output_layer(x)
+        return x
 
 
 def get_resnet18_pre():
@@ -76,3 +149,31 @@ def get_resnet18():
     resnet18_model = models.resnet18(pretrained=False)
     resnet18_model.fc = nn.Sequential(OrderedDict({'output_layer': nn.Linear(512, 10)}))
     return resnet18_model
+
+
+def get_model(name):
+    if name == "nnet":
+        return NNet()
+    elif name == 'basic_cnn0':
+        return BasicCNN0()
+    elif name == 'basic_cnn1':
+        return BasicCNN1()
+    else:
+        return BasicCNN2()
+
+
+def get_selected_layers(layer_names, consider_layers):
+    if consider_layers == 'l1':
+        return [layer_names[-1]]
+    elif consider_layers == 'l2':
+        return layer_names[-2:]
+    elif consider_layers == 'f1':
+        return [layer_names[0]]
+    elif consider_layers == 'f2':
+        return layer_names[0:2]
+    elif consider_layers == 'f1l1':
+        return [layer_names[0], layer_names[-1]]
+    elif consider_layers == 'f2l2':
+        return layer_names[0:2] + layer_names[-2:0]
+    else:
+        return layer_names

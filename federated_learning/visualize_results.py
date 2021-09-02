@@ -1,23 +1,31 @@
-import json
-import os
-from sklearn import metrics
+import pandas as pd
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import plotly.express as px
 
+## project base path
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-json_folder = os.path.join(base_path, 'json_files/')
-file_name = json_folder + 'results_2021-04-27 10:20:03.txt'
+def compare_histo_plots(trust_df1, trust_df2, overlap=False):
+    if overlap:
+        pass
+    else:
+        histo_fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
+        histo_fig.add_trace(px.histogram(trust_df1, x="modified_trust", color="client_label", color_discrete_map={
+                "honest": '#00CC96',
+                "minor_offender": '#EF553B',
+                "major_offender": '#AB63FA'}), row=1, col=1)
+        histo_fig.add_trace(px.histogram(trust_df2, x="modified_trust", color="client_label", color_discrete_map={
+                "honest": '#00CC96',
+                "minor_offender": '#EF553B',
+                "major_offender": '#AB63FA'}), row=1, col=1)
+        histo_fig.update_layout(title='Trust given by validation clients', barmode="group")
+        histo_fig.show()
 
-with open(file_name) as result_file:
-    result_data = json.load(result_file)
-    print(result_data['model'])
-    print(result_data['config'])
-    print(result_data['training_losses'])
-    print(result_data['testing_losses'])
-    print(result_data['total_accuracies'])
-    print(result_data['class_accuracies'])
-    y_true = result_data['final_test_data']['ground_truths']
-    y_pred = result_data['final_test_data']['predictions']
-    # Print the confusion matrix
-    print(metrics.confusion_matrix(y_true, y_pred))
-    # Print the precision and recall, among other metrics
-    print(metrics.classification_report(y_true, y_pred, digits=3))
+
+def compare_trust_curve_plots(trust_score_df1, trust_score_df2):
+    pass
+
+
+def compare_acc_poison_plots(acc_poison_df1, acc_poison_df2, overlap=False):
+    pass

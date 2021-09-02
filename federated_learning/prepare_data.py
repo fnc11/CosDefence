@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 import shutil
 from numpy.random import default_rng
@@ -20,6 +19,7 @@ def get_poisoned_labels(orig_labels, label_flip_scheme):
 
 
 def get_dataset(dataset_name):
+    global base_path
     data_folder = base_path + f'/data/{dataset_name}/raw_data/'
     Path(data_folder).mkdir(parents=True, exist_ok=True)
 
@@ -30,6 +30,13 @@ def get_dataset(dataset_name):
                                     ])
         # Download and load the training data
         trainset = datasets.MNIST(data_folder, download=True, train=True, transform=data_transforms)
+    elif dataset_name == "fmnist":
+        # Define a transform to normalize the data
+        data_transforms = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (0.5,)),
+                                    ])
+        # Download and load the training data
+        trainset = datasets.FashionMNIST(data_folder, download=True, train=True, transform=data_transforms)
     else:
         # Define a transform to normalize the data
         data_transforms = transforms.Compose([transforms.ToTensor(),
@@ -40,7 +47,7 @@ def get_dataset(dataset_name):
     return trainset
 
 
-def create_client_data(dataset_name='cifar10', class_ratio=10):
+def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio=10):
     class_ids = defaultdict(list)
     trainset = get_dataset(dataset_name)
     for i in range(len(trainset)):
@@ -58,6 +65,14 @@ def create_client_data(dataset_name='cifar10', class_ratio=10):
             minor_share = 41
         else:
             minor_share = 54
+    elif dataset_name == "fmnist":
+        # in fashion mnist all classes have 6000 examples each
+        if class_ratio == 10:
+            minor_share = 31
+        elif class_ratio == 4:
+            minor_share = 46
+        else:
+            minor_share = 60
     else:
         # in cifar10 all classes have 5000 examples each
         if class_ratio == 10:
@@ -109,11 +124,15 @@ def create_client_data(dataset_name='cifar10', class_ratio=10):
         lbl_data = torch.stack(client_lbl_tensors[i])
         client_data.append((img_data, lbl_data))  # If we want to save as tuple or tensor we can decide
 
-    poison_params = [0, 10, 20, 40]  # no of clients poisoned out of 100
+    poison_params = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]  # no of clients poisoned out of 100
     label_flips = [(2, 9)]
     total_clients = 100
-    seed = 42
-    rng = default_rng(seed)
+    if random_setting:
+        rng = default_rng()
+    else:
+        seed = 42
+        rng = default_rng(seed)
+    global base_path
     root_save_folder = os.path.join(base_path, f'data/{dataset_name}/fed_data/')
     # in case folder were present already, cleans the folder inside so that if we accidentally
     # ran ccds flag twice we don't poison data more than necessary
@@ -178,6 +197,7 @@ def create_client_data_loaders(client_nums, data_folder, batch_size, random_mode
     return data_loaders
 
 def get_test_data_loader(dataset_name, batch_size):
+    global base_path
     data_folder = base_path + f'/data/{dataset_name}/raw_data/'
     Path(data_folder).mkdir(parents=True, exist_ok=True)
 
@@ -188,6 +208,13 @@ def get_test_data_loader(dataset_name, batch_size):
                                     ])
         # Download and load the training data
         testset = datasets.MNIST(data_folder, download=True, train=False, transform=data_transforms)
+    elif dataset_name == "fmnist":
+        # Define a transform to normalize the data
+        data_transforms = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Normalize((0.5,), (0.5,)),
+                                    ])
+        # Download and load the training data
+        testset = datasets.FashionMNIST(data_folder, download=True, train=False, transform=data_transforms)
     else:
         # Define a transform to normalize the data
         data_transforms = transforms.Compose([transforms.ToTensor(),

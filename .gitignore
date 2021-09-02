@@ -134,3 +134,6 @@ data/
 # Logs Folder
 logs/
 *FL_logs*
+
+# plots folder
+results/plots/
