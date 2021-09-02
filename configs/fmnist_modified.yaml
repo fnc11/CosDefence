@@ -36,5 +36,5 @@ HONEST_PARDON_FACTOR: 0.8 # it decides how much you want to pardon good clients 
 
 
 # LOG
-LOG_LEVEL: 'DEBUG' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
+LOG_LEVEL: 'INFO' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
 JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization

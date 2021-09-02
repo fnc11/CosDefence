@@ -66,29 +66,34 @@ def main():
         
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
-        config['COS_DEFENCE'] = False
         config['RANDOM'] = True
-        summary_data_list.append(run_and_summarize(config, 2))
+        config['CLIENT_FRAC'] = 0.2
+        config['CREATE_DATASET'] = False
+
+        p_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        # p_list = [0.6]
+        repeat = 5
+        for poison_var in p_list:
+            config['POISON_FRAC'] = poison_var
+
+            config['COS_DEFENCE'] = False
+            summary_data_list.append(run_and_summarize(config, repeat))
         
-        
-        ## now after turning cos_defence on
-        config['COS_DEFENCE'] = True
-        # config['CREATE_DATASET'] = False
-        ## trying out the method
-        summary_data_list.append(run_and_summarize(config, 2))
-        config['COLLAB_ALL'] = True
-        summary_data_list.append(run_and_summarize(config, 2))
+            ## now after turning cos_defence on
+            config['COS_DEFENCE'] = True
+            summary_data_list.append(run_and_summarize(config, repeat))
 
 
 
         ## storing results in a json file
         json_folder = os.path.join(base_path, 'results/json_files/')
         Path(json_folder).mkdir(parents=True, exist_ok=True)
-        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}"
+        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_FDRS{config['FED_ROUNDS']}"
         file_name = 'summary_{}_{}.json'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
+        all_summary_data = dict()
+        all_summary_data['summary'] = summary_data_list
         with open(os.path.join(json_folder ,file_name), 'w') as result_file:
-            for summary_data in summary_data_list:
-                json.dump(summary_data, result_file)
+            json.dump(all_summary_data, result_file)
 
 
 
