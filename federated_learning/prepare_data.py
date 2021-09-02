@@ -4,6 +4,7 @@ import shutil
 from numpy.random import default_rng
 from collections import defaultdict
 import json
+import logging
 
 import torch
 from torchvision import datasets, transforms
@@ -56,8 +57,9 @@ def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio
     client_img_tensors = [[] for i in range(100)]
     client_lbl_tensors = [[] for i in range(100)]
 
+    print("Preparing client data first")
+    logging.info(f"Class ratio used: {class_ratio}")
     if dataset_name == "mnist":
-        print(f"Class ratio used: {class_ratio}")
         # in mnist maximum number of samples each class at least have is 5421
         if class_ratio == 10:
             minor_share = 28  # so we will put 28 images from each minority class => 28*9*10 = 2520 
@@ -140,14 +142,14 @@ def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio
     
     Path(root_save_folder).mkdir(parents=True, exist_ok=True)
 
-    print(root_save_folder)
+    logging.info(root_save_folder)
     for poison_param in poison_params:
         for k in range(len(label_flips)):
             save_folder = os.path.join(root_save_folder,f'label_flip{k}/', f'poisoned_{poison_param}CLs/')
             Path(save_folder).mkdir(parents=True, exist_ok=True)
-            print(save_folder)
+            logging.info(save_folder)
             clients_selected = rng.choice(total_clients, size=poison_param, replace=False)
-            print(clients_selected)
+            logging.info(clients_selected)
             
             # saving these clients which are selected as being poisonous
             pinfo_data = {}

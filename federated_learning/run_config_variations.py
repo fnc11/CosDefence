@@ -69,7 +69,7 @@ def main():
         ## first one without cos_defence on with fixed environment
         config['RANDOM'] = True
         config['CLIENT_FRAC'] = 0.2
-        config['CREATE_DATASET'] = False
+        config['CREATE_DATASET'] = True
 
         p_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         # p_list = [0.6]

@@ -858,15 +858,15 @@ def start_fl(with_config):
     data_folder = os.path.join(base_path, f"data/{config['DATASET']}/fed_data/label_flip0/poisoned_{int(config['POISON_FRAC']*100)}CLs/")
 
     # specify learning rate to be used
-    if config['COS_DEFENCE']:
-        ## we'll increase it, after cos_defence starts working
-        learning_rate = config['LEARNING_RATE']/10
-    else:
-        learning_rate = config['LEARNING_RATE']  # change this according to our model, tranfer learning use 0.001, basic model use 0.01
+    # if config['COS_DEFENCE']:
+    #     ## we'll increase it, after cos_defence starts working
+    #     learning_rate = config['LEARNING_RATE']/10
+    # else:
+    #     learning_rate = config['LEARNING_RATE']  # change this according to our model, tranfer learning use 0.001, basic model use 0.01
     if config['OPTIMIZER'] == 'sgd':
-        optimizers = [optim.SGD(params=client_models[idx].parameters(), lr=learning_rate) for idx in range(total_clients)]
+        optimizers = [optim.SGD(params=client_models[idx].parameters(), lr=config['LEARNING_RATE']) for idx in range(total_clients)]
     else:
-        optimizers = [optim.Adam(params=client_models[idx].parameters(), lr=learning_rate) for idx in range(total_clients)]
+        optimizers = [optim.Adam(params=client_models[idx].parameters(), lr=config['LEARNING_RATE']) for idx in range(total_clients)]
     
     client_data_loaders = create_client_data_loaders(total_clients, data_folder, config['BATCH_SIZE'])
     test_data_loader = get_test_data_loader(config['DATASET'], config['BATCH_SIZE'])
@@ -906,10 +906,10 @@ def start_fl(with_config):
         trust_scores.append(current_system_trust_vec.copy())
         if config['COS_DEFENCE']:
             ## increase the learning rate now
-            if i == start_cosdefence:
-                for optimizer in optimizers:
-                    for op_grp in optimizer.param_groups:
-                        op_grp['lr'] = config['LEARNING_RATE']
+            # if i == start_cosdefence:
+                # for optimizer in optimizers:
+                #     for op_grp in optimizer.param_groups:
+                #         op_grp['lr'] = config['LEARNING_RATE']
 
             if i >= start_cosdefence:
                 if config['SEL_METHOD'] == 0:
