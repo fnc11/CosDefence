@@ -71,7 +71,7 @@ def main():
         config['CLIENT_FRAC'] = 0.2
         config['CREATE_DATASET'] = True
 
-        p_list = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        p_list = [0.0, 0.2, 0.4, 0.6, 0.8]
         # p_list = [0.6]
         repeat = 10
         for poison_var in p_list:

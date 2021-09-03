@@ -86,7 +86,9 @@ def find_indicative_grads(grad_bank, feature_finding_algo="auror", cluster_sep=0
             feature_arr = feature_arr.reshape(tensor_shape)
             # print(feature_arr)
         ind_grad_dict[layer_name] = feature_arr
-        with open(f'{layer_name}.npy', 'wb') as f:
-            np.save(f, feature_arr)
+
+        ## to save the important feature connections in layers
+        # with open(f'{layer_name}.npy', 'wb') as f:
+        #     np.save(f, feature_arr)
     
     return ind_grad_dict, count
