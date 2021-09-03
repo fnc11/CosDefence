@@ -32,11 +32,11 @@ def run_and_summarize(config, times):
     print("Selected config")
     print(config)
     print(f"mean and std values after {times} random experiments")
-    print(f"mean_attack_srates: {np.mean(mean_attack_srates)} +- {np.std(mean_attack_srates)}")
-    print(f"mean_poison_class_accs: {np.mean(mean_poison_class_accs)} +- {np.std(mean_poison_class_accs)}")
-    print(f"total_class_accs_end: {np.mean(total_class_accs_end)} +- {np.std(total_class_accs_end)}")
-    print(f"poison_class_accs_end: {np.mean(poison_class_accs_end)} +- {np.std(poison_class_accs_end)}")
-    print(f"attack_states_end: {np.mean(attack_srates_end)} +- {np.std(attack_srates_end)}")
+    print(f"mean_mean_attack_srates: {np.mean(mean_attack_srates)} +- {np.std(mean_attack_srates)}")
+    print(f"mean_mean_poison_class_accs: {np.mean(mean_poison_class_accs)} +- {np.std(mean_poison_class_accs)}")
+    print(f"mean_total_class_accs_end: {np.mean(total_class_accs_end)} +- {np.std(total_class_accs_end)}")
+    print(f"mean_poison_class_accs_end: {np.mean(poison_class_accs_end)} +- {np.std(poison_class_accs_end)}")
+    print(f"mean_attack_states_end: {np.mean(attack_srates_end)} +- {np.std(attack_srates_end)}")
 
     summary_data = {}
     summary_data['config'] = copy.deepcopy(config)
@@ -68,21 +68,23 @@ def main():
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
         config['RANDOM'] = True
-        config['CLIENT_FRAC'] = 0.2
+        config['CLIENT_FRAC'] = 0.1
+        config['POISON_FRAC'] = 0.1
         config['CREATE_DATASET'] = True
 
-        p_list = [0.0, 0.2, 0.4, 0.6, 0.8]
-        # p_list = [0.6]
-        repeat = 10
-        for poison_var in p_list:
-            config['POISON_FRAC'] = poison_var
-
-            config['COS_DEFENCE'] = False
+        repeat = 5
+        config['COS_DEFENCE'] = False
+        summary_data_list.append(run_and_summarize(config, repeat))
+        ## now after turning cos_defence on
+        config['COS_DEFENCE'] = True
+        sep_list = [0.01, 0.1, 0.5, 1.0, 8.0]
+        for c_sep in sep_list:
+            config['CLUSTER_SEP'] = c_sep
+            config['FEATURE_FINDING_ALGO'] = 'auror'
             summary_data_list.append(run_and_summarize(config, repeat))
-        
-            ## now after turning cos_defence on
-            config['COS_DEFENCE'] = True
+            config['FEATURE_FINDING_ALGO'] = 'auror_plus'
             summary_data_list.append(run_and_summarize(config, repeat))
+            
 
 
 
