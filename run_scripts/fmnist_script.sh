@@ -22,9 +22,10 @@ module load python/3.8.7
 module load cuda/111
 module load cudnn/8.0.5
 # pip3 install --user tensorboard
-# pip3 install --user -U scikit-learn
-# pip3 install plotly
-# pip3 install -U kaleido
-# pip3 instal pyyaml
+pip3 install --user -U scikit-learn
+pip3 install --user plotly
+pip3 install --user -U kaleido
+pip3 install --user pyyaml
+pip3 install --user torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 python3 run_config.py fmnist_modified.yaml

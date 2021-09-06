@@ -1,0 +1,173 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(!!) We are changing the naming scheme for the CUDA module. cuda/112 will become cuda/11.2 etc. The old version names will soon be deprecated, please update your scripts to avoid problems in the future.
+(OK) Loading cudnn 8.0.5
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 3.4995 +- 0.26017404030763713
+mean_mean_poison_class_accs: 25.736749999999994 +- 5.78414175515694
+mean_total_class_accs_end: 60.21 +- 2.9058217426401116
+mean_poison_class_accs_end: 33.67999999999999 +- 8.544331454244972
+mean_attack_states_end: 3.2 +- 0.340587727318528
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 0.0001, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 8.573625 +- 5.858921407776349
+mean_mean_poison_class_accs: 17.670125000000002 +- 14.851016681316807
+mean_total_class_accs_end: 40.08 +- 25.127544249289464
+mean_poison_class_accs_end: 20.619999999999997 +- 20.49716077899571
+mean_attack_states_end: 14.62 +- 13.540516976836592
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 0.001, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 5.809375 +- 4.314360069871311
+mean_mean_poison_class_accs: 26.860999999999997 +- 12.245613708334506
+mean_total_class_accs_end: 53.028 +- 21.622341593823737
+mean_poison_class_accs_end: 40.34 +- 23.1284759549781
+mean_attack_states_end: 8.919999999999998 +- 11.143859295594144
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 5.638999999999999 +- 3.7176625006514503
+mean_mean_poison_class_accs: 22.91875 +- 10.856408929464198
+mean_total_class_accs_end: 49.32 +- 19.71128813649681
+mean_poison_class_accs_end: 30.660000000000004 +- 18.983213637316524
+mean_attack_states_end: 9.2 +- 11.005998364528317
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 0.05, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 6.259624999999999 +- 4.387096110327421
+mean_mean_poison_class_accs: 20.5805 +- 10.781307828830414
+mean_total_class_accs_end: 47.444 +- 20.071648263159656
+mean_poison_class_accs_end: 27.48 +- 20.947018880976835
+mean_attack_states_end: 9.379999999999999 +- 10.921611602689412
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 3.7588749999999997 +- 0.14046985886659133
+mean_mean_poison_class_accs: 29.500125000000004 +- 3.508437361383267
+mean_total_class_accs_end: 61.372 +- 1.217545071034332
+mean_poison_class_accs_end: 43.9 +- 10.255340072372052
+mean_attack_states_end: 3.72 +- 0.4534313619501854
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 8.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 3.602125 +- 0.3478789750042392
+mean_mean_poison_class_accs: 34.12599999999999 +- 4.273644660883728
+mean_total_class_accs_end: 62.044000000000004 +- 1.8620698160917621
+mean_poison_class_accs_end: 55.68000000000001 +- 9.333895221181777
+mean_attack_states_end: 3.3 +- 0.2898275349237888

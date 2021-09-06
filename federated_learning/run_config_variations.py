@@ -77,13 +77,26 @@ def main():
         summary_data_list.append(run_and_summarize(config, repeat))
         ## now after turning cos_defence on
         config['COS_DEFENCE'] = True
-        sep_list = [0.01, 0.1, 0.5, 1.0, 8.0]
+        config['FEATURE_FINDING_ALGO'] = 'auror'
+
+        config['CONSIDER_LAYERS'] = "l1"
+        sep_list = [2.0, 3.0, 4.0, 6.0, 8.0]
         for c_sep in sep_list:
             config['CLUSTER_SEP'] = c_sep
-            config['FEATURE_FINDING_ALGO'] = 'auror'
             summary_data_list.append(run_and_summarize(config, repeat))
-            config['FEATURE_FINDING_ALGO'] = 'auror_plus'
+
+        config['CONSIDER_LAYERS'] = "l2"
+        sep_list = [2.0, 3.0, 4.0, 6.0, 8.0]
+        for c_sep in sep_list:
+            config['CLUSTER_SEP'] = c_sep
             summary_data_list.append(run_and_summarize(config, repeat))
+        
+        config['CONSIDER_LAYERS'] = "f1l1"
+        sep_list = [2.0, 3.0, 4.0, 6.0, 8.0]
+        for c_sep in sep_list:
+            config['CLUSTER_SEP'] = c_sep
+            summary_data_list.append(run_and_summarize(config, repeat))
+
             
 
 
