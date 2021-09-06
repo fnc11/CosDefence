@@ -19,8 +19,11 @@ def main():
         config = yaml.safe_load(cfg_file)
         ## don't modify config here, just update the setting in corresponding modified config file and give the file name
         ## since we need to always compare cos_defence on and off, adding that variation here.
-        # config['COS_DEFENCE'] = False
-        # print_results(config, start_fl(config))
+        config['CREATE_DATASET'] = True
+        config['COS_DEFENCE'] = False
+        print_results(config, start_fl(config))
+
+        config['CREATE_DATASET'] = False
         config['COS_DEFENCE'] = True
         print_results(config, start_fl(config))
 
