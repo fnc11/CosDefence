@@ -67,9 +67,8 @@ def main():
         
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
-        config['RANDOM'] = True
         config['CLIENT_FRAC'] = 0.1
-        config['POISON_FRAC'] = 0.1
+        config['POISON_FRAC'] = 0.0
         config['CREATE_DATASET'] = True
 
         repeat = 5
@@ -77,6 +76,7 @@ def main():
         summary_data_list.append(run_and_summarize(config, repeat))
         ## now after turning cos_defence on
         config['COS_DEFENCE'] = True
+<<<<<<< HEAD
         config['FEATURE_FINDING_ALGO'] = 'auror'
 
         config['CONSIDER_LAYERS'] = "l1"
@@ -98,7 +98,36 @@ def main():
             summary_data_list.append(run_and_summarize(config, repeat))
 
             
+=======
+        summary_data_list.append(run_and_summarize(config, repeat))
 
+        config['POISON_FRAC'] = 0.1
+        config['COS_DEFENCE'] = False
+        summary_data_list.append(run_and_summarize(config, repeat))
+        ## now after turning cos_defence on
+        config['COS_DEFENCE'] = True
+        summary_data_list.append(run_and_summarize(config, repeat))
+
+        # sep_list = [0.001, 0.002, 0.005, 0.007, 0.01]
+        # config['FEATURE_FINDING_ALGO'] = 'auror'
+>>>>>>> 18fbad2ed83825dc99c63d6ed78964f0d3eb50b2
+
+        # config['CONSIDER_LAYERS'] = 'l1'
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['CONSIDER_LAYERS'] = 'l2'
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['CONSIDER_LAYERS'] = 'f1l1'
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+            
+ 
 
 
         ## storing results in a json file
