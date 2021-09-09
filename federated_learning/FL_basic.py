@@ -181,10 +181,19 @@ def identify_poisoned(clients_selected, poisoned_clients):
 
 def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fill_up=True):
     global current_system_trust_mat
+    global current_system_trust_vec
+
+    ## Since we pick clients based on trust vec while cos_defence is selected, so we need to make sure that 
+    ## trust vec sums upto 1
+    current_system_trust_vec /= current_system_trust_vec.sum()
+
     ## we first normalize the trust matrix and then find mean and std for sampling where values are zero
     sum_of_rows = current_system_trust_mat.sum(axis=1)
     current_system_trust_mat = current_system_trust_mat / sum_of_rows[:, np.newaxis]
     
+    ## we also check here how many clients out of total clients were never selected while initial 
+    ## trust building
+    not_selected_before_starting = 0
     if fill_up:
         ## step 1, find mean, std from the non_zero values and also note down these clients
         for i in range(total_clients):
@@ -195,14 +204,18 @@ def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fil
                     zero_interaction_clients.append(j)
                 else:
                     interaction_trust_vals.append(current_system_trust_mat[i][j])
-                interaction_trust_mean = np.mean(np.array(interaction_trust_vals))
-                interaction_trust_std = np.std(np.array(interaction_trust_vals))
-                sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
-                for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
-                    current_system_trust_mat[i][j] = sampled_trust
+            
+            if len(zero_interaction_clients) == total_clients:
+                not_selected_before_starting += 1
+            interaction_trust_mean = np.mean(np.array(interaction_trust_vals))
+            interaction_trust_std = np.std(np.array(interaction_trust_vals))
+            sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
+            for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
+                current_system_trust_mat[i][j] = sampled_trust
             ## client i would have 100% trust on itself
             current_system_trust_mat[i][i] = (1+1)/200
 
+    print(f"{not_selected_before_starting} clients were not selected in starting rounds")
     ## also we give 100% trust between intial_validation_clients, since we starting with same initial trust 0.01
     ## between all clients, we just add this extra trust
     num_validating_clients = len(initial_validation_clients)
@@ -218,6 +231,7 @@ def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fil
 
 
 def fill_initial_trust(computing_clients):
+    global config
     global initial_aggregate_grads
     global current_system_trust_mat
     global current_system_trust_vec
@@ -249,19 +263,14 @@ def fill_initial_trust(computing_clients):
     agg_val_vector /= np.linalg.norm(agg_val_vector)
     
     ## now we iterate over the computing clients to give them trust values\
-    alpha = 0.4
     for comp_client in computing_clients:
         comp_vec = copy.deepcopy(initial_aggregate_grads[comp_client]).reshape(1, -1)
         comp_vec /= np.linalg.norm(comp_vec)
         new_trust_val = (1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/200
         prev_val = current_system_trust_vec[comp_client]
-        current_system_trust_vec[comp_client] = alpha*prev_val + (1-alpha)*new_trust_val
+        current_system_trust_vec[comp_client] = config['ALPHA']*prev_val + (1-config['ALPHA'])*new_trust_val
 
-    ## we don't normalize trust matrix here, we do it only once before starting cos_defence
-
-    ## But since we pick clients based on trust vec while cos_defence is selected, so we need to make sure that 
-    ## trust vec sums upto 1
-    current_system_trust_vec /= current_system_trust_vec.sum()
+    ## we don't normalize trust matrix and trust vec here, we do it only once before starting cos_defence
     
 
 def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
@@ -314,12 +323,13 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
 
         ##This implementation needs to be done for individual mode scenario.
         if config['TRUST_CUT_METHOD'] == 0:
-            ## make 2 clusters assuming one for honest (with high similarity value) and one for malicious(with low similarity value)
+            ## make 2 clusters assuming one for honest (with more number of clients) and one for malicious (with low number)
             kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
             kmeans_centers = kmeans.cluster_centers_
             center_dist = abs(kmeans_centers[0] - kmeans_centers[1])
-            logging.info(f"Trust cluster diff: {center_dist}")
-            honest_trust_threshold = np.max(kmeans_centers)*(1 - config['HONEST_PARDON_FACTOR']*center_dist)
+            ## implement the logic here.
+            # logging.info(f"Trust cluster diff: {center_dist}")
+            # honest_trust_threshold = np.max(kmeans_centers)*(1 - config['HONEST_PARDON_FACTOR']*center_dist)
         elif config['TRUST_CUT_METHOD'] == 1:
             ## AFA method
             mean_val = np.mean(trust_arr)
@@ -327,12 +337,14 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             std_dev = np.std(trust_arr)
             if mean_val >= median_val:
                 honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
+                trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.002)
             else:
                 honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
+                trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.002)
         else:
             honest_trust_threshold = 0.0
-
-        trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.001)
+            trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.002)
+        
         comp_trusts = list(trust_arr)
         for val_client, comp_client, new_trust_val in zip(validating_clients, computing_clients, comp_trusts):
             prev_val = current_system_trust_mat[val_client, comp_client]
@@ -343,7 +355,7 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             client_ids.append(comp_client)
             if comp_client in poisoned_clients:
                 client_type = "minor_offender"
-                if comp_client//2 == 2:
+                if comp_client//20 == 1:
                     client_type = "major_offender"
             else:
                 client_type = "honest"
@@ -367,7 +379,7 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
                     validation_client_ids.append(val_client)
                     if comp_client in poisoned_clients:
                         client_type = "minor_offender"
-                        if comp_client//2 == 2:
+                        if comp_client//20 == 1:
                             client_type = "major_offender"
                     else:
                         client_type = "honest"
@@ -684,7 +696,7 @@ def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_ac
         poisoned_clients_in_round = all_poisoned_client_selected[fed_round]
         poisoned_data_in_round = 0
         for pclient in poisoned_clients_in_round:
-            if pclient//10 == 2:
+            if pclient//20 == 1:
                 poisoned_data_in_round += major_class_examples
             else:
                 poisoned_data_in_round += minor_class_examples
@@ -792,7 +804,7 @@ def start_fl(with_config):
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Computing Device:{device}")
-    if config['RANDOM']:
+    if config['RANDOM_PROCESS']:
         rng1 = default_rng()
         rng2 = default_rng()
     else:
@@ -806,7 +818,7 @@ def start_fl(with_config):
 
     # If this flag is set first client data is created
     if config['CREATE_DATASET']:
-        create_client_data(config['RANDOM'], config['DATASET'], config['CLASS_RATIO'])
+        create_client_data(config['RANDOM_DATA'], config['DATASET'], config['CLASS_RATIO'])
 
     # if config['COS_DEFENCE']:
     if config['GRAD_COLLECT_FOR'] == -1:
@@ -814,7 +826,7 @@ def start_fl(with_config):
         if config['DATASET'] == 'mnist':
             start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
         elif config['DATASET'] == 'fmnist':
-            start_cosdefence = config['GRAD_COLLECTION_START'] + 2*int(1/config['CLIENT_FRAC'])
+            start_cosdefence = config['GRAD_COLLECTION_START'] + 2 * int(1/config['CLIENT_FRAC'])
         else:
             start_cosdefence = config['GRAD_COLLECTION_START'] + 4 * int(1/config['CLIENT_FRAC'])
     else:
@@ -877,6 +889,12 @@ def start_fl(with_config):
     with open(poison_config_file, 'r') as pconfig_file:
         pinfo_data = json.load(pconfig_file)
         poisoned_clients = pinfo_data['poisoned_clients']
+        ## printing poisoned client composition in the environment
+        major_offender_count = 0
+        for poisoned_client in poisoned_clients:
+            if poisoned_client//20 == 1:
+                major_offender_count += 1
+        print(f"Major offender: {major_offender_count}, Minor offender: {len(poisoned_clients)-major_offender_count}")
 
     if config['COS_DEFENCE']:
         initial_validation_clients = init_validation_clients(poisoned_clients, rng2)
@@ -911,7 +929,7 @@ def start_fl(with_config):
                     for op_grp in optimizer.param_groups:
                         op_grp['lr'] = config['LEARNING_RATE']
 
-            if i >= start_cosdefence:
+            if i >= start_cosdefence:       
                 if config['SEL_METHOD'] == 0:
                     clients_selected = rng1.choice(config['TOTAL_CLIENTS'], size=int(config['TOTAL_CLIENTS'] * config['CLIENT_FRAC']), replace=False)
                 elif config['SEL_METHOD'] == 1:
@@ -972,6 +990,9 @@ def start_fl(with_config):
                     indicative_grads, counts = find_indicative_grads(grad_bank, config['FEATURE_FINDING_ALGO'], config['CLUSTER_SEP'])
                     save_for_feature_finding = False
                     collect_features = True
+
+                    ## to make sure when client are selected this value sums upto 1
+                    current_system_trust_vec /= current_system_trust_vec.sum()
                     
                     ## this code is upload pre-calculated grad features.
                     # layer_names = ['fc1', 'fc2', 'output_layer']

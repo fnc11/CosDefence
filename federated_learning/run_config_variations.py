@@ -58,6 +58,106 @@ def run_and_summarize(config, times):
     return summary_data
 
 
+def run_off_on_summarize(config, times):
+    ## this method first generates a dataset radomly and then fixes the process so
+    ## that we can see how cos_defence off and on works on same environment
+    mean_attack_srates_off = np.zeros(times, dtype=float)
+    mean_poison_class_accs_off = np.zeros(times, dtype=float)
+    total_class_accs_end_off = np.zeros(times, dtype=float)
+    poison_class_accs_end_off = np.zeros(times, dtype=float)
+    attack_srates_end_off = np.zeros(times, dtype=float)
+
+    mean_attack_srates_on = np.zeros(times, dtype=float)
+    mean_poison_class_accs_on = np.zeros(times, dtype=float)
+    total_class_accs_end_on = np.zeros(times, dtype=float)
+    poison_class_accs_end_on = np.zeros(times, dtype=float)
+    attack_srates_end_on = np.zeros(times, dtype=float)
+
+    config['RANDOM_PROCESS'] = False
+    for i in range(times):
+        config['CREATE_DATASET'] = True
+        config['COS_DEFENCE'] = False
+
+        attack_srates_off, source_class_accs_off, total_accs_off, mean_attack_srate_off, mean_poison_class_acc_off = start_fl(config)
+        mean_attack_srates_off[i] = mean_attack_srate_off
+        mean_poison_class_accs_off[i] = mean_poison_class_acc_off
+        total_class_accs_end_off[i] = total_accs_off[-1]
+        poison_class_accs_end_off[i] = source_class_accs_off[-1]
+        attack_srates_end_off[i] = attack_srates_off[-1]
+
+        config['CREATE_DATASET'] = False
+        config['COS_DEFENCE'] = True
+
+        attack_srates_on, source_class_accs_on, total_accs_on, mean_attack_srate_on, mean_poison_class_acc_on = start_fl(config)
+        mean_attack_srates_on[i] = mean_attack_srate_on
+        mean_poison_class_accs_on[i] = mean_poison_class_acc_on
+        total_class_accs_end_on[i] = total_accs_on[-1]
+        poison_class_accs_end_on[i] = source_class_accs_on[-1]
+        attack_srates_end_on[i] = attack_srates_on[-1]
+
+
+    summary_data = {}
+    cdf_off_summary = {}
+    cdf_on_summary = {}
+
+    print("Selected config")
+    config['COS_DEFENCE'] = False
+    print(config)
+    print(f"mean and std values after {times} random experiments when cos_defence: {config['COS_DEFENCE']}")
+    print(f"mean_mean_attack_srates: {np.mean(mean_attack_srates_off)} +- {np.std(mean_attack_srates_off)}")
+    print(f"mean_mean_poison_class_accs: {np.mean(mean_poison_class_accs_off)} +- {np.std(mean_poison_class_accs_off)}")
+    print(f"mean_total_class_accs_end: {np.mean(total_class_accs_end_off)} +- {np.std(total_class_accs_end_off)}")
+    print(f"mean_poison_class_accs_end: {np.mean(poison_class_accs_end_off)} +- {np.std(poison_class_accs_end_off)}")
+    print(f"mean_attack_states_end: {np.mean(attack_srates_end_off)} +- {np.std(attack_srates_end_off)}")
+
+    cdf_off_summary['config'] = copy.deepcopy(config)
+    cdf_off_summary['mean_mean_attack_srates_off'] = np.mean(mean_attack_srates_off)
+    cdf_off_summary['std_mean_attack_srates_off'] = np.std(mean_attack_srates_off)
+
+    cdf_off_summary['mean_mean_poison_class_accs_off'] = np.mean(mean_poison_class_accs_off)
+    cdf_off_summary['std_mean_poison_class_accs_off'] = np.std(mean_poison_class_accs_off)
+
+    cdf_off_summary['mean_total_class_accs_end_off'] = np.mean(total_class_accs_end_off)
+    cdf_off_summary['std_total_class_accs_end_off'] = np.std(total_class_accs_end_off)
+    
+    cdf_off_summary['mean_poison_class_accs_end_off'] = np.mean(poison_class_accs_end_off)
+    cdf_off_summary['std_poison_class_accs_end_off'] = np.std(poison_class_accs_end_off)
+
+    cdf_off_summary['mean_attack_srates_end_off'] = np.mean(attack_srates_end_off)
+    cdf_off_summary['std_attack_srates_end_off'] = np.std(attack_srates_end_off)
+    summary_data['cdf_off_summary'] = cdf_off_summary
+    
+    print("Selected config")
+    config['COS_DEFENCE'] = True
+    print(config)
+    print(f"mean and std values after {times} random experiments when cos_defence: {config['COS_DEFENCE']}")
+    print(f"mean_mean_attack_srates: {np.mean(mean_attack_srates_on)} +- {np.std(mean_attack_srates_on)}")
+    print(f"mean_mean_poison_class_accs: {np.mean(mean_poison_class_accs_on)} +- {np.std(mean_poison_class_accs_on)}")
+    print(f"mean_total_class_accs_end: {np.mean(total_class_accs_end_on)} +- {np.std(total_class_accs_end_on)}")
+    print(f"mean_poison_class_accs_end: {np.mean(poison_class_accs_end_on)} +- {np.std(poison_class_accs_end_on)}")
+    print(f"mean_attack_states_end: {np.mean(attack_srates_end_on)} +- {np.std(attack_srates_end_on)}")
+
+
+
+    cdf_on_summary['config'] = copy.deepcopy(config)
+    cdf_on_summary['mean_mean_attack_srates_on'] = np.mean(mean_attack_srates_on)
+    cdf_on_summary['std_mean_attack_srates_on'] = np.std(mean_attack_srates_on)
+
+    cdf_on_summary['mean_mean_poison_class_accs_on'] = np.mean(mean_poison_class_accs_on)
+    cdf_on_summary['std_mean_poison_class_accs_on'] = np.std(mean_poison_class_accs_on)
+
+    cdf_on_summary['mean_total_class_accs_end_on'] = np.mean(total_class_accs_end_on)
+    cdf_on_summary['std_total_class_accs_end_on'] = np.std(total_class_accs_end_on)
+    
+    cdf_on_summary['mean_poison_class_accs_end_on'] = np.mean(poison_class_accs_end_on)
+    cdf_on_summary['std_poison_class_accs_end_on'] = np.std(poison_class_accs_end_on)
+
+    cdf_on_summary['mean_attack_srates_end_on'] = np.mean(attack_srates_end_on)
+    cdf_on_summary['std_attack_srates_end_on'] = np.std(attack_srates_end_on)
+    summary_data['cdf_on_summary'] = cdf_on_summary
+
+    return summary_data
+
 def main():
     global base_path
     config_file = base_path + '/configs/' + sys.argv[1]
@@ -67,25 +167,91 @@ def main():
         
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
-        config['RANDOM'] = True
-        config['CLIENT_FRAC'] = 0.1
+        config['CLIENT_FRAC'] = 0.2
+
+        repeat = 10
+        config['POISON_FRAC'] = 0.0
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+        
         config['POISON_FRAC'] = 0.1
-        config['CREATE_DATASET'] = True
+        summary_data_list.append(run_off_on_summarize(config, repeat))
 
-        repeat = 5
-        config['COS_DEFENCE'] = False
-        summary_data_list.append(run_and_summarize(config, repeat))
-        ## now after turning cos_defence on
-        config['COS_DEFENCE'] = True
-        sep_list = [0.01, 0.1, 0.5, 1.0, 8.0]
-        for c_sep in sep_list:
-            config['CLUSTER_SEP'] = c_sep
-            config['FEATURE_FINDING_ALGO'] = 'auror'
-            summary_data_list.append(run_and_summarize(config, repeat))
-            config['FEATURE_FINDING_ALGO'] = 'auror_plus'
-            summary_data_list.append(run_and_summarize(config, repeat))
+        config['POISON_FRAC'] = 0.2
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.3
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.4
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.5
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        # repeat = 5
+        # config['COS_DEFENCE'] = False
+        # summary_data_list.append(run_and_summarize(config, repeat))
+        # ## now after turning cos_defence on
+        # sep_list = [0.001, 0.01, 0.1, 1.0, 2.0]
+        # config['COS_DEFENCE'] = True
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['POISON_FRAC'] = 0.1
+        # config['COS_DEFENCE'] = False
+        # summary_data_list.append(run_and_summarize(config, repeat))
+        # ## now after turning cos_defence on
+        # config['COS_DEFENCE'] = True
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['POISON_FRAC'] = 0.2
+        # config['COS_DEFENCE'] = False
+        # summary_data_list.append(run_and_summarize(config, repeat))
+        # ## now after turning cos_defence on
+        # config['COS_DEFENCE'] = True
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['POISON_FRAC'] = 0.3
+        # config['COS_DEFENCE'] = False
+        # summary_data_list.append(run_and_summarize(config, repeat))
+        # ## now after turning cos_defence on
+        # config['COS_DEFENCE'] = True
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['POISON_FRAC'] = 0.4
+        # config['COS_DEFENCE'] = False
+        # summary_data_list.append(run_and_summarize(config, repeat))
+        # ## now after turning cos_defence on
+        # config['COS_DEFENCE'] = True
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+        # sep_list = [0.001, 0.002, 0.005, 0.007, 0.01]
+        # config['FEATURE_FINDING_ALGO'] = 'auror'
+
+        # config['CONSIDER_LAYERS'] = 'l1'
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['CONSIDER_LAYERS'] = 'l2'
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
+
+        # config['CONSIDER_LAYERS'] = 'f1l1'
+        # for c_sep in sep_list:
+        #     config['CLUSTER_SEP'] = c_sep
+        #     summary_data_list.append(run_and_summarize(config, repeat))
             
-
+ 
 
 
         ## storing results in a json file
