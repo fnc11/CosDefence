@@ -167,13 +167,25 @@ def main():
         
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
-        config['CLIENT_FRAC'] = 0.1
-        config['POISON_FRAC'] = 0.0
+        config['CLIENT_FRAC'] = 0.2
 
         repeat = 10
+        config['POISON_FRAC'] = 0.0
         summary_data_list.append(run_off_on_summarize(config, repeat))
         
         config['POISON_FRAC'] = 0.1
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.2
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.3
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.4
+        summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        config['POISON_FRAC'] = 0.5
         summary_data_list.append(run_off_on_summarize(config, repeat))
 
         # repeat = 5
