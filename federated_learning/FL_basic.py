@@ -325,11 +325,42 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
         if config['TRUST_CUT_METHOD'] == 0:
             ## make 2 clusters assuming one for honest (with more number of clients) and one for malicious (with low number)
             kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
-            kmeans_centers = kmeans.cluster_centers_
-            center_dist = abs(kmeans_centers[0] - kmeans_centers[1])
-            ## implement the logic here.
-            # logging.info(f"Trust cluster diff: {center_dist}")
-            # honest_trust_threshold = np.max(kmeans_centers)*(1 - config['HONEST_PARDON_FACTOR']*center_dist)
+            labels = kmeans.predict(trust_arr)
+            _vals, counts = np.unique(labels, return_counts=True)
+            logging.info(f"_labels: {_vals}, counts: {counts}")
+            trust_arr = trust_arr.flatten()
+
+
+            if counts[0] > counts[1]:
+                trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
+            elif counts[0] < counts[1]:
+                trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
+            else:
+                kmeans_centers = kmeans.cluster_centers_
+                if kmeans_centers[0][0] > kmeans_centers[1][0]:
+                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
+                else:
+                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
+
+            
+            # kmeans_centers = kmeans.cluster_centers_
+            # center_dist = abs(kmeans_centers[0][0] - kmeans_centers[1][0])
+            # if counts[0] > counts[1]:
+            #     ## center 0 is majority similarty mean value
+            #     majority_mean = kmeans_centers[0][0]
+            #     minortiy_mean = kmeans_centers[1][0]
+            # else:
+            #     majority_mean = kmeans_centers[1][0]
+            #     minortiy_mean = kmeans_centers[0][0]
+            
+            # lower_trust_bound = max(0, majority_mean - config['HONEST_PARDON_FACTOR']*center_dist)
+            # upper_trust_bound = min(0.99, majority_mean + config['HONEST_PARDON_FACTOR']*center_dist)
+            # trust_arr = np.where(((trust_arr >= lower_trust_bound) & (trust_arr <= upper_trust_bound)), trust_arr, 0.3)
+            # logging.info("Trust Cutting using Clustering")
+            # logging.info("majority_mean, minortiy_mean, center_dist, lower_trust_bound, upper_trust_bound")
+            # logging.info(f"{majority_mean}, {minortiy_mean}, {center_dist}, {lower_trust_bound}, {upper_trust_bound}")
+
+            logging.info(f"modified arr: {trust_arr}")
         elif config['TRUST_CUT_METHOD'] == 1:
             ## AFA method
             mean_val = np.mean(trust_arr)
@@ -337,14 +368,16 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             std_dev = np.std(trust_arr)
             if mean_val >= median_val:
                 honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
-                trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.002)
+                trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.2)
             else:
                 honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
-                trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.002)
+                trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.2)
         else:
             honest_trust_threshold = 0.0
-            trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.002)
+            trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.2)
         
+        ## we divide all trust values by 100 before setting these values in the matrix
+        trust_arr /= 100
         comp_trusts = list(trust_arr)
         for val_client, comp_client, new_trust_val in zip(validating_clients, computing_clients, comp_trusts):
             prev_val = current_system_trust_mat[val_client, comp_client]
@@ -368,7 +401,7 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
                 if comp_client != val_client:
                     comp_vec = copy.deepcopy(aggregate_grads[comp_client]).reshape(1, -1)
                     comp_vec /= np.linalg.norm(comp_vec)
-                    new_trust_val = (1+cosine_similarity(comp_vec, val_vec)[0][0])/200
+                    new_trust_val = (1+cosine_similarity(comp_vec, val_vec)[0][0])/(2*100)
 
                     prev_val = current_system_trust_mat[val_client, comp_client]
                     current_system_trust_mat[val_client, comp_client] = prev_val*config['BETA'] + (1-config['BETA'])*new_trust_val
