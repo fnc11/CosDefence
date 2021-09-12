@@ -331,16 +331,31 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             trust_arr = trust_arr.flatten()
 
 
-            if counts[0] > counts[1]:
-                trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
-            elif counts[0] < counts[1]:
-                trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
-            else:
-                kmeans_centers = kmeans.cluster_centers_
-                if kmeans_centers[0][0] > kmeans_centers[1][0]:
+            if config['TRUST_MODIFY_STRATEGY'] == 0:
+                if counts[0] > counts[1]:
                     trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
-                else:
+                elif counts[0] < counts[1]:
                     trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
+                else:
+                    kmeans_centers = kmeans.cluster_centers_
+                    if kmeans_centers[0][0] > kmeans_centers[1][0]:
+                        trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
+                    else:
+                        trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
+            elif config['TRUST_MODIFY_STRATEGY'] == 1:
+                kmeans_centers = kmeans.cluster_centers_
+                if counts[0] > counts[1]:
+                    trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+                elif counts[0] < counts[1]:
+                    trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+                else:
+                    kmeans_centers = kmeans.cluster_centers_
+                    if kmeans_centers[0][0] > kmeans_centers[1][0]:
+                        trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+                    else:
+                        trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+            else:
+                pass
 
             
             # kmeans_centers = kmeans.cluster_centers_
