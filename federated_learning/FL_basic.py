@@ -971,58 +971,45 @@ def start_fl(with_config):
         # if turned on we change the client_weights from normal to computed by CosDefence
         logging.info(f"CosDefence is On: {config['COS_DEFENCE']}")
         if config['COS_DEFENCE']:
-            if config["FEATURE_FINDING_ALGO"] == "none":
-                # cos_defence(clients_selected, poisoned_clients_selected, 0)
-                # ## since all the neural units are important in this case, we just need count of total model units
-                # ## not indicative grads, while collecting we'll collect all
+            if i == config['GRAD_COLLECTION_START']:
+                save_for_feature_finding = True
+            elif i == start_cosdefence - 1:
+                indicative_grads, counts = find_indicative_grads(grad_bank, config['FEATURE_FINDING_ALGO'], config['CLUSTER_SEP'])
+                save_for_feature_finding = False
+                collect_features = True
+
+                ## to make sure when client are selected this value sums upto 1
+                current_system_trust_vec /= current_system_trust_vec.sum()
+                
+                ## this code is upload pre-calculated grad features.
+                # layer_names = ['fc1', 'fc2', 'output_layer']
                 # counts = 0
-                # for layer_name in grad_bank.keys():
-                #     counts += grad_bank[layer_name][0].size
-                # collect_features = True
-                # ## initializing aggregate grads so that now these grads can be collected as flat vector
-                # for k in range(config['TOTAL_CLIENTS']):
-                #     aggregate_grads.append(torch.zeros(counts))
-                pass
+                # for name in layer_names:
+                #     bias_arr = np.load(name + '.bias.npy')
+                #     weight_arr = np.load(name + '.weight.npy')
+                #     logging.info(f"Indicative grad of {name} has sizes")
+                #     logging.info(bias_arr.shape)
+                #     logging.info(weight_arr.shape)
+                #     indicative_grads[name + '.bias'] = bias_arr
+                #     indicative_grads[name + '.weight'] = weight_arr
+                #     counts += np.count_nonzero(bias_arr)
+                #     counts += np.count_nonzero(weight_arr)
+                
+                ## initializing aggregate grads so that now these grads can ve collected as flat vector
+                for k in range(config['TOTAL_CLIENTS']):
+                    aggregate_grads.append(torch.zeros((1, counts)))
+
+                logging.info(f"Found {counts} indicative grads")
+
+            elif i >= start_cosdefence:
+                ## before starting cos_defence, fill up matrix and vec using mean, std method
+                if not trust_initialized:
+                    fill_up_rem_trust_mat_and_vec(config['TOTAL_CLIENTS'], initial_validation_clients, fill_up=True)
+                    trust_initialized = True
+                cos_defence(clients_selected, poisoned_clients_selected, 0)
             else:
-                if i == config['GRAD_COLLECTION_START']:
-                    save_for_feature_finding = True
-                elif i == start_cosdefence - 1:
-                    indicative_grads, counts = find_indicative_grads(grad_bank, config['FEATURE_FINDING_ALGO'], config['CLUSTER_SEP'])
-                    save_for_feature_finding = False
-                    collect_features = True
-
-                    ## to make sure when client are selected this value sums upto 1
-                    current_system_trust_vec /= current_system_trust_vec.sum()
-                    
-                    ## this code is upload pre-calculated grad features.
-                    # layer_names = ['fc1', 'fc2', 'output_layer']
-                    # counts = 0
-                    # for name in layer_names:
-                    #     bias_arr = np.load(name + '.bias.npy')
-                    #     weight_arr = np.load(name + '.weight.npy')
-                    #     logging.info(f"Indicative grad of {name} has sizes")
-                    #     logging.info(bias_arr.shape)
-                    #     logging.info(weight_arr.shape)
-                    #     indicative_grads[name + '.bias'] = bias_arr
-                    #     indicative_grads[name + '.weight'] = weight_arr
-                    #     counts += np.count_nonzero(bias_arr)
-                    #     counts += np.count_nonzero(weight_arr)
-                    
-                    ## initializing aggregate grads so that now these grads can ve collected as flat vector
-                    for k in range(config['TOTAL_CLIENTS']):
-                        aggregate_grads.append(torch.zeros((1, counts)))
-
-                    logging.info(f"Found {counts} indicative grads")
-
-                elif i >= start_cosdefence:
-                    ## before starting cos_defence, fill up matrix and vec using mean, std method
-                    if not trust_initialized:
-                        fill_up_rem_trust_mat_and_vec(config['TOTAL_CLIENTS'], initial_validation_clients, fill_up=True)
-                        trust_initialized = True
-                    cos_defence(clients_selected, poisoned_clients_selected, 0)
-                else:
-                    ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
-                    fill_initial_trust(clients_selected)
+                ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
+                fill_initial_trust(clients_selected)
 
 
         ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning

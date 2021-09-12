@@ -1,8 +1,8 @@
 # FL_DATA
 DATASET: "mnist"
-TOTAL_CLIENTS: 100 # total clients 10|100
+TOTAL_CLIENTS: 100 # total clients 100
 CLIENT_FRAC: 0.1 # client fraction to select in each round 0.1|0.2|0.4
-POISON_FRAC: 0.0 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9
+POISON_FRAC: 0.1 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9
 CREATE_DATASET: False # if true it creates FL Dataset
 RANDOM_DATA: True # to create data and poison data randomly or with fixed seed 42 
 CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
@@ -16,7 +16,7 @@ LOCAL_EPOCHS: 10 # epochs to run before clients send back the model update
 OPTIMIZER: "adam" # client model parameter
 FED_ROUNDS: 30 # federated rounds to run
 TEST_EVERY: 1 # test the model for accuracy after every 3rd round
-RANDOM_PROCESS: True # to select candidates randomly or with fixed seed 42 
+RANDOM_PROCESS: False # to select candidates randomly or with fixed seed 42 
 
 
 # COS_DEFENCE_SETTINGS
@@ -25,7 +25,7 @@ SEL_METHOD: 1  # Client selection method, 0: total_random, 1: system_trust as pr
 REDUCE_LR: 1  # By what factor selected learning rate should be reduced in the starting before the cos_defence mechanism starts trust based gathering.
 COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly assign trust
 COLLAB_ALL: True # whether all client's joint vector is used for validation or top half
-CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
+CONSIDER_LAYERS: "l2"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
 FEATURE_FINDING_ALGO: auror  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
 GRAD_COLLECTION_START: 0   # when to start collecting grads 
@@ -36,6 +36,7 @@ BETA: 0.8    # parameter for updating system trust matrix
 GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
 TRUST_CUT_METHOD: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
+TRUST_UPDATE_STRATEGY: 0 # after trust cutting we have 2 approaches to update client trusts which the method assumes as malicious 
 HONEST_PARDON_FACTOR: 0.7 # it decides how much you want to pardon good clients getting bad trust values
 
 
