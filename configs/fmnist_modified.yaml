@@ -14,7 +14,7 @@ LEARNING_RATE: 0.001 # client's model learning rate
 BATCH_SIZE: 32 # client model parameter
 LOCAL_EPOCHS: 10 # epochs to run before clients send back the model update
 OPTIMIZER: "adam" # client model parameter
-FED_ROUNDS: 60 # federated rounds to run
+FED_ROUNDS: 30 # federated rounds to run
 TEST_EVERY: 1 # test the model for accuracy after every 3rd round
 RANDOM_PROCESS: False # to select candidates randomly or with fixed seed 42 
 
@@ -33,10 +33,11 @@ GRAD_COLLECT_FOR: -1   #for how many fed rounds grads are collected, -1 means se
 CLUSTER_SEP: 0.005   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
 ALPHA: 0.8   # parameter for updating system trust vector
 BETA: 0.8    # parameter for updating system trust matrix
-GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
+GAMMA: 0.05   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-TRUST_CUT_METHOD: 0  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for passing everthing as it is
+TRUST_CUT_METHOD: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for passing everthing as it is
 HONEST_PARDON_FACTOR: 0.08 # it decides how much you want to pardon good clients getting bad trust values
+TRUST_MODIFY_STRATEGY: 1 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
 
 
 # LOG

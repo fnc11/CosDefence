@@ -13,6 +13,7 @@ from prepare_data import create_client_data, create_client_data_loaders, get_tes
 from available_models import get_model, get_selected_layers
 import json
 from sklearn import metrics
+from sklearn.metrics import precision_recall_fscore_support
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -381,15 +382,26 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             mean_val = np.mean(trust_arr)
             median_val = np.median(trust_arr)
             std_dev = np.std(trust_arr)
-            if mean_val >= median_val:
-                honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
-                trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.2)
+            if config['TRUST_MODIFY_STRATEGY'] == 0:
+                if mean_val >= median_val:
+                    honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
+                    trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.3)
+                else:
+                    honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
+                    trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.3)
+            elif config['TRUST_MODIFY_STRATEGY'] == 1:
+                if mean_val >= median_val:
+                    honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
+                    trust_arr = np.where(trust_arr <= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
+                else:
+                    honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
+                    trust_arr = np.where(trust_arr >= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
             else:
-                honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
-                trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.2)
+                pass 
         else:
-            honest_trust_threshold = 0.0
-            trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.2)
+            # honest_trust_threshold = 0.0
+            # trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.2)
+            pass
         
         ## we divide all trust values by 100 before setting these values in the matrix
         trust_arr /= 100
@@ -547,8 +559,6 @@ def run_test(model, test_data_loader, loss_fn, device):
     # Need to save these in case of final test
     predictions = []
     ground_truths = []
-    attack_scount = 0
-    attack_srate = 0
     source_class = 2
     target_class = 9
     # iterate over test data
@@ -573,14 +583,7 @@ def run_test(model, test_data_loader, loss_fn, device):
             label = target.data[i]
             class_correct[label] += correct[i].item()
             class_total[label] += 1
-            ## checking if attack was successful
-            if ground_truths[i] == source_class and pred_class[i] == target_class:
-                attack_scount += 1
     
-    ## just making sure we had some example of source class
-    if class_total[source_class] > 0:
-        attack_srate =(100 * attack_scount)/class_total[source_class]
-    logging.info(f"Attack Success Rate: {attack_srate}")
     # average test loss
     test_loss = test_loss / len(test_data_loader.dataset)
     logging.debug('Test Loss: {:.6f}\n'.format(test_loss))
@@ -595,13 +598,13 @@ def run_test(model, test_data_loader, loss_fn, device):
         else:
             # cls_acc = 'Test Accuracy of %5s: N/A (no training examples)' % (classes[i])
             cls_acc = -1
-        logging.info(cls_acc)
+        logging.debug(cls_acc)
         all_classes_acc.append(cls_acc)
-    total_acc = 100. * np.sum(class_correct) / np.sum(class_total)
-    logging.info('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
-        total_acc, np.sum(class_correct), np.sum(class_total)))
+    avg_acc = 100. * np.sum(class_correct) / np.sum(class_total)
+    logging.debug('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
+        avg_acc, np.sum(class_correct), np.sum(class_total)))
 
-    return test_loss, total_acc, all_classes_acc, predictions, ground_truths, attack_srate
+    return test_loss, avg_acc, all_classes_acc, predictions, ground_truths
 
 
 def fed_avg(server_model, selected_clients, client_models, client_weights):
@@ -712,7 +715,7 @@ def gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients,
     score_curves_fig.update_layout(title="Trust Score Evolution")
     score_curves_fig.write_html(os.path.join(save_location,'{}_trust_score_curves_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
-def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_accuracy, all_poisoned_client_selected):
+def gen_accuracy_poison_data_plot(poison_class_accuracy, avg_accuracy, all_poisoned_client_selected):
     global config
     if config['DATASET'] == "mnist":
         if config['CLASS_RATIO'] == 10:
@@ -759,9 +762,8 @@ def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_ac
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     accuracy_poison_df = pd.DataFrame()
     accuracy_poison_df['testing_round'] = testing_round
-    accuracy_poison_df['total_accuracy'] = total_accuracy
-    accuracy_poison_df['source_class_accuracy'] = source_class_accuracy
-    accuracy_poison_df['attack_srates'] = attack_srates
+    accuracy_poison_df['avg_accuracy'] = avg_accuracy
+    accuracy_poison_df['poison_class_accuracy'] = poison_class_accuracy
     accuracy_poison_df.to_pickle(f'{dataframe_location}accuracy_poison_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
     
     ## plotting
@@ -770,18 +772,18 @@ def gen_accuracy_poison_data_plot(attack_srates, source_class_accuracy, total_ac
                             shared_xaxes=True,
                             vertical_spacing=0.01)
 
-    acc_poison_fig.add_trace(go.Scatter(name='Total Accuracy', x=testing_round, y=total_accuracy, mode='lines+markers'),
+    acc_poison_fig.add_trace(go.Scatter(name='Avg Accuracy', x=testing_round, y=avg_accuracy, mode='lines+markers'),
                                 row=1, col=1)
-    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=source_class_accuracy, mode='lines+markers'),
+    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=poison_class_accuracy, mode='lines+markers'),
                                 row=1, col=1)
 
     acc_poison_fig.add_trace(go.Bar(name='Poisoned Examples', x=testing_round, y=poisoned_examples),
                                 row=2, col=1)
 
-    acc_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
-                                row=3, col=1)
+    # acc_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
+    #                             row=3, col=1), '#00B5F7'
 
-    acc_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#DC587D', '#00B5F7'],
+    acc_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#DC587D'],
                                 title_text="Accuracy variations with poisoned examples")
     
     acc_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
@@ -874,9 +876,9 @@ def start_fl(with_config):
         if config['DATASET'] == 'mnist':
             start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
         elif config['DATASET'] == 'fmnist':
-            start_cosdefence = config['GRAD_COLLECTION_START'] + 2 * int(1/config['CLIENT_FRAC'])
+            start_cosdefence = config['GRAD_COLLECTION_START'] + int(1/config['CLIENT_FRAC'])
         else:
-            start_cosdefence = config['GRAD_COLLECTION_START'] + 4 * int(1/config['CLIENT_FRAC'])
+            start_cosdefence = config['GRAD_COLLECTION_START'] + 2 * int(1/config['CLIENT_FRAC'])
     else:
         start_cosdefence = config['GRAD_COLLECTION_START'] + config['GRAD_COLLECT_FOR']
 
@@ -948,12 +950,18 @@ def start_fl(with_config):
         initial_validation_clients = init_validation_clients(poisoned_clients, rng2)
 
     ###Training and testing model every kth round
-    total_accs = []
-    source_class_accs = []
-    attack_srates = []
-    classes_accs = []
-    classes_f1scores = []
-    avg_metric_vals = []
+    ## here source or poison class we means same
+    poison_class = 2
+    avg_accs = []
+    avg_precisions = []
+    avg_recalls = []
+    avg_f1_scores = []
+    poison_class_accs = []
+    poison_class_precisions = []
+    poison_class_recalls = []
+    poison_class_f1_scores = []
+    ## this store individual class accs, precisions, recalls and f1_scores
+    all_class_metric_vals = []
     poisoned_clients_sel_in_rounds = []
     client_training_losses = [[] for i in range(config['TOTAL_CLIENTS'])]
     avg_training_losses = [] # this saves the avg loss of the clients selected in one federated round
@@ -1090,37 +1098,49 @@ def start_fl(with_config):
     
         # Testing Model every kth round
         if (i + 1) % config['TEST_EVERY'] == 0:
-            testing_loss, total_acc, classes_acc, predictions, ground_truths, attack_srate = run_test(server_model, test_data_loader, loss_fn, device)
-            cls_precisions, cls_recalls, cls_f1scores, cls_supports = metrics.precision_recall_fscore_support(ground_truths, predictions, average=None, zero_division=1)
-            # classes_precisions.append(cls_precisions.tolist())
-            # classes_recalls.append(cls_recalls.tolist())
-            classes_f1scores.append(cls_f1scores.tolist())
-            # classes_supports.append(cls_supports.tolist())
-            # we store "weighted" average values of precision, recall, f1score and support in this list.
-            avg_metric_vals.append(metrics.precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1))
-            # testing_losses.append(testing_loss)
-            ## saving total and source classes accuracy separately which we can plot later.
-            total_accs.append(total_acc)
-            source_class_accs.append(classes_acc[2])
-            attack_srates.append(attack_srate)
-            classes_accs.append(classes_acc)
+            testing_loss, avg_acc, cls_accs, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
+            avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(ground_truths, predictions, average='weighted')
+            avg_accs.append(avg_acc)
+            avg_precisions.append(avg_precision)
+            avg_recalls.append(avg_recall)
+            avg_f1_scores.append(avg_f1_scores)
+            cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None)
+            poison_class_accs.append(cls_accs[poison_class])
+            poison_class_precisions.append(cls_precisions[poison_class])
+            poison_class_recalls.append(cls_recalls[poison_class])
+            poison_class_f1_scores.append(cls_f1_scores[poison_class])
+            all_class_metric_vals.append({'cls_accs': cls_accs, 'cls_precisions': cls_precisions, 'cls_recalls': cls_recalls, 'cls_f1_scores': cls_f1_scores })
 
-
+            logging.info(f"avg_acc: {avg_acc}, avg_precision: {avg_precision}, avg_recall: {avg_recall}, avg_f1_score: {avg_f1_score}")
+            logging.info(f"pcls_acc: {cls_accs[poison_class]}, pcls_precision: {cls_precisions[poison_class]}, pcls_recall: {cls_recalls[poison_class]}, pcls_f1_score: {cls_f1_scores[poison_class]}")
     ## generating various plots
     plots_folder = os.path.join(base_path, 'results/plots/')
     Path(plots_folder).mkdir(parents=True, exist_ok=True)
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     Path(dataframe_location).mkdir(parents=True, exist_ok=True)
-    gen_accuracy_poison_data_plot(attack_srates, source_class_accs, total_accs, poisoned_clients_sel_in_rounds)
+    gen_accuracy_poison_data_plot(poison_class_accs, avg_accs, poisoned_clients_sel_in_rounds)
     if config['COS_DEFENCE']:
         gen_trust_plots(client_ids, validation_client_ids, all_trust_vals, all_client_types)
         gen_trust_curves(trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence)
         trust_clustering(all_trust_vals, all_client_types)
 
-    mean_poison_class_acc = np.mean(np.array(source_class_accs[start_cosdefence:]))
-    mean_attack_srate = np.mean(np.array(attack_srates[start_cosdefence:]))
+    mean_poison_class_acc = np.mean(np.array(poison_class_accs[start_cosdefence:]))
+    mean_poison_class_precision = np.mean(np.array(poison_class_precisions[start_cosdefence:]))
+    mean_poison_class_recall = np.mean(np.array(poison_class_recalls[start_cosdefence:]))
+    mean_poison_class_f1_score = np.mean(np.array(poison_class_f1_scores[start_cosdefence:]))
     logging.info(f"Mean Poison class accuracy: {mean_poison_class_acc}")
-    logging.info(f"Mean Attack success rate: {mean_attack_srate}")
+    logging.info(f"Mean Poison class precision: {mean_poison_class_precision}")
+    logging.info(f"Mean Poison class recall: {mean_poison_class_recall}")
+    logging.info(f"Mean Poison class f1_score : {mean_poison_class_f1_score}")
+
+    # mean_avg_acc = np.mean(np.array(avg_accs[start_cosdefence:]))
+    # mean_avg_precision = np.mean(np.array(avg_precisions[start_cosdefence:]))
+    # mean_avg_recall = np.mean(np.array(avg_recalls[start_cosdefence:]))
+    # mean_avg_f1_score = np.mean(np.array(avg_f1_scores[start_cosdefence:]))
+    # logging.info(f"Mean Avg accuracy: {mean_avg_acc}")
+    # logging.info(f"Mean Avg precision: {mean_avg_precision}")
+    # logging.info(f"Mean Avg class recall: {mean_avg_recall}")
+    # logging.info(f"Mean Avg class f1_score : {mean_avg_f1_score}")
 
     if config['JSON_RESULTS']:
         logging.info("We saved results in json file")
@@ -1128,34 +1148,38 @@ def start_fl(with_config):
         result_data = {}
         result_data['config'] = config
         result_data['mean_poison_class_acc'] = mean_poison_class_acc
-        result_data['mean_attack_srate'] = mean_attack_srate
-        # result_data['avg_training_losses'] = avg_training_losses
-        # result_data['training_losses'] = client_training_losses
-        # result_data['testing_losses'] = testing_losses
-        result_data['total_accuracies'] = total_accs
-        result_data['class_accuracies'] = classes_accs
-        
 
-        # storing classwise precision, recall, f1score ans support for every testing round
-        # result_data['class_precisions'] = classes_precisions
-        # result_data['class_recalls'] = classes_recalls
-        result_data['class_f1scores'] = classes_f1scores
-        # result_data['class_supports'] = classes_supports
-        result_data['avg_metric_vals'] = avg_metric_vals
+        result_data['avg_accs'] = avg_accs
+        result_data['avg_precisions'] = avg_precisions
+        result_data['avg_recalls'] = avg_recalls
+        result_data['avg_f1_scores'] = avg_f1_scores
+
+        result_data['poison_class_accs'] = poison_class_accs
+        result_data['poison_class_precisions'] = poison_class_precisions
+        result_data['poison_class_recalls'] = poison_class_recalls
+        result_data['poison_class_f1_scores'] = poison_class_f1_scores
+        result_data['all_class_metric_vals'] = all_class_metric_vals
 
         # posioned_clients_selected in each round is also stored
-        # result_data['poisoned_client_sel'] = poisoned_clients_sel_in_rounds
+        result_data['poisoned_client_sel'] = poisoned_clients_sel_in_rounds
 
         # one final test is run and data is saved
         final_test_data = {}
-        testing_loss, total_acc, classes_acc, predictions, ground_truths, attack_srate = run_test(server_model, test_data_loader, loss_fn, device)
-        final_test_data['poison_class_acc'] = classes_acc[2]
-        final_test_data['attack_state'] = attack_srate
-        # final_test_data['testing_loss'] = testing_loss
-        final_test_data['total_acc'] = total_acc
-        final_test_data['classes_acc'] = classes_acc
-        # final_test_data['predictions'] = predictions
-        # final_test_data['ground_truths'] = ground_truths
+        testing_loss, avg_acc, cls_accs, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
+        avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(y_true, y_pred, average='weighted')
+        cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None)
+        final_test_data['final_avg_acc'] = avg_acc
+        final_test_data['final_avg_precision'] = avg_precision
+        final_test_data['final_avg_recall'] = avg_recall
+        final_test_data['final_avg_f1_score'] = avg_f1_score
+
+        final_test_data['final_poison_class_acc'] = cls_acc[poison_class]
+        final_test_data['final_poison_class_precision'] = cls_precisions[poison_class]
+        final_test_data['final_poison_class_recall'] = cls_recalls[poison_class]
+        final_test_data['final_poison_class_f1_score'] = cls_f1_scores[poison_class]
+        final_test_data['final_all_class_metric_vals'] = {'cls_accs': cls_accs, 'cls_precisions': cls_precisions, 'cls_recalls': cls_recalls, 'cls_f1_scores': cls_f1_scores }
+
+
         result_data['final_test_data'] = final_test_data
 
         json_folder = os.path.join(base_path, 'results/json_files/')

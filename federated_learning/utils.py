@@ -73,6 +73,7 @@ def find_indicative_grads(grad_bank, feature_finding_algo="auror", cluster_sep=0
         if feature_finding_algo == "none":
             ## all neural units are important
             feature_arr = np.ones(tensor_shape)
+            icount = feature_arr.size
         else:
             logging.info("Number of models in bank")
             logging.info(len(grad_bank[layer_name]))
@@ -81,11 +82,11 @@ def find_indicative_grads(grad_bank, feature_finding_algo="auror", cluster_sep=0
             param_arr = np.stack(diff_model_params, axis=0).transpose()
             ## now this param_arr contains each row of values from different models, so we just cluster all row values
             feature_arr, icount = cluster_params(param_arr, feature_finding_algo, cluster_sep)
-            count += icount
             # print(feature_arr)
             feature_arr = feature_arr.reshape(tensor_shape)
             # print(feature_arr)
         ind_grad_dict[layer_name] = feature_arr
+        count += icount
 
         ## to save the important feature connections in layers
         # with open(f'{layer_name}.npy', 'wb') as f:
