@@ -1,5 +1,5 @@
 import copy
-from utils import find_indicative_grads
+from utils import find_indicative_grads, NpEncoder
 import time
 import os
 import logging
@@ -1187,6 +1187,6 @@ def start_fl(with_config):
         config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}"
         file_name = '{}_{}.json'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
         with open(os.path.join(json_folder ,file_name), 'w') as result_file:
-            json.dump(result_data, result_file)
+            json.dump(result_data, result_file, cls=NpEncoder)
 
     return mean_poison_class_acc, mean_avg_acc, mean_poison_class_f1_score, mean_avg_f1_score

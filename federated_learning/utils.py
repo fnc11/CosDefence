@@ -4,6 +4,7 @@ import warnings
 import logging
 
 import numpy as np
+import json
 
 from collections import defaultdict
 
@@ -93,3 +94,14 @@ def find_indicative_grads(grad_bank, feature_finding_algo="auror", cluster_sep=0
         #     np.save(f, feature_arr)
     
     return ind_grad_dict, count
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
