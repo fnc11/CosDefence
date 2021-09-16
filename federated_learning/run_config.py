@@ -9,8 +9,9 @@ global base_path
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def print_results(config, experiment_results):
-    attack_srates, source_class_accs, total_accs, mean_attack_srate, mean_poison_class_acc = experiment_results
-    print(f"cos_defence:{config['COS_DEFENCE']}, mean_poison_class_acc:{mean_poison_class_acc}, total acc end: {total_accs[-1]}")
+    mean_poison_class_acc, mean_avg_acc, mean_poison_class_f1_score, mean_avg_f1_score = experiment_results
+    print(f"cos_defence:{config['COS_DEFENCE']}, mean_poison_class_acc:{mean_poison_class_acc:.5f}, mean_avg_acc: {mean_avg_acc:.5f}")
+    print(f"mean_poison_class_f1_score : {mean_poison_class_f1_score:.5f}, mean_avg_f1_score : {mean_avg_f1_score:.5f}")
 
 def main():
     global base_path
@@ -19,7 +20,7 @@ def main():
         config = yaml.safe_load(cfg_file)
         ## don't modify config here, just update the setting in corresponding modified config file and give the file name
         ## since we need to always compare cos_defence on and off, adding that variation here.
-        config['CREATE_DATASET'] = True
+        # config['CREATE_DATASET'] = True
         config['COS_DEFENCE'] = False
         print_results(config, start_fl(config))
 

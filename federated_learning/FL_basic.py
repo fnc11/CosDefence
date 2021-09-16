@@ -586,7 +586,7 @@ def run_test(model, test_data_loader, loss_fn, device):
     
     # average test loss
     test_loss = test_loss / len(test_data_loader.dataset)
-    logging.debug('Test Loss: {:.6f}\n'.format(test_loss))
+    logging.debug(f'Test Loss: {test_loss:.6f}\n')
 
     all_classes_acc = []
     for i in range(10):
@@ -594,13 +594,13 @@ def run_test(model, test_data_loader, loss_fn, device):
             # cls_acc = 'Test Accuracy of %5s: %2d%% (%2d/%2d)' % (
             #     classes[i], (100 * class_correct[i]) / class_total[i],
             #     np.sum(class_correct[i]), np.sum(class_total[i]))
-            cls_acc = (100 * class_correct[i]) / class_total[i]
+            cls_acc = (100.0 * class_correct[i]) / class_total[i]
         else:
             # cls_acc = 'Test Accuracy of %5s: N/A (no training examples)' % (classes[i])
             cls_acc = -1
-        logging.debug(cls_acc)
+        logging.debug(f"{cls_acc:.5f}")
         all_classes_acc.append(cls_acc)
-    avg_acc = 100. * np.sum(class_correct) / np.sum(class_total)
+    avg_acc = 100.0 * np.sum(class_correct) / np.sum(class_total)
     logging.debug('\nTest Accuracy (Overall): %2d%% (%2d/%2d)\n\n' % (
         avg_acc, np.sum(class_correct), np.sum(class_total)))
 
@@ -1099,20 +1099,20 @@ def start_fl(with_config):
         # Testing Model every kth round
         if (i + 1) % config['TEST_EVERY'] == 0:
             testing_loss, avg_acc, cls_accs, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
-            avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(ground_truths, predictions, average='weighted')
+            avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1)
             avg_accs.append(avg_acc)
             avg_precisions.append(avg_precision)
             avg_recalls.append(avg_recall)
-            avg_f1_scores.append(avg_f1_scores)
-            cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None)
+            avg_f1_scores.append(avg_f1_score)
+            cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None, zero_division=1)
             poison_class_accs.append(cls_accs[poison_class])
             poison_class_precisions.append(cls_precisions[poison_class])
             poison_class_recalls.append(cls_recalls[poison_class])
             poison_class_f1_scores.append(cls_f1_scores[poison_class])
-            all_class_metric_vals.append({'cls_accs': cls_accs, 'cls_precisions': cls_precisions, 'cls_recalls': cls_recalls, 'cls_f1_scores': cls_f1_scores })
+            all_class_metric_vals.append({'cls_accs': cls_accs, 'cls_precisions': cls_precisions.tolist(), 'cls_recalls': cls_recalls.tolist(), 'cls_f1_scores': cls_f1_scores.tolist()})
 
-            logging.info(f"avg_acc: {avg_acc}, avg_precision: {avg_precision}, avg_recall: {avg_recall}, avg_f1_score: {avg_f1_score}")
-            logging.info(f"pcls_acc: {cls_accs[poison_class]}, pcls_precision: {cls_precisions[poison_class]}, pcls_recall: {cls_recalls[poison_class]}, pcls_f1_score: {cls_f1_scores[poison_class]}")
+            logging.info(f"avg_acc: {avg_acc:.5f}, avg_precision: {avg_precision:.5f}, avg_recall: {avg_recall:.5f}, avg_f1_score: {avg_f1_score:.5f}")
+            logging.info(f"pcls_acc: {cls_accs[poison_class]:.5f}, pcls_precision: {cls_precisions[poison_class]:.5f}, pcls_recall: {cls_recalls[poison_class]:.5f}, pcls_f1_score: {cls_f1_scores[poison_class]:.5f}")
     ## generating various plots
     plots_folder = os.path.join(base_path, 'results/plots/')
     Path(plots_folder).mkdir(parents=True, exist_ok=True)
@@ -1128,19 +1128,19 @@ def start_fl(with_config):
     mean_poison_class_precision = np.mean(np.array(poison_class_precisions[start_cosdefence:]))
     mean_poison_class_recall = np.mean(np.array(poison_class_recalls[start_cosdefence:]))
     mean_poison_class_f1_score = np.mean(np.array(poison_class_f1_scores[start_cosdefence:]))
-    logging.info(f"Mean Poison class accuracy: {mean_poison_class_acc}")
-    logging.info(f"Mean Poison class precision: {mean_poison_class_precision}")
-    logging.info(f"Mean Poison class recall: {mean_poison_class_recall}")
-    logging.info(f"Mean Poison class f1_score : {mean_poison_class_f1_score}")
+    logging.info(f"Mean Poison class accuracy: {mean_poison_class_acc:.5f}")
+    logging.info(f"Mean Poison class precision: {mean_poison_class_precision:.5f}")
+    logging.info(f"Mean Poison class recall: {mean_poison_class_recall:.5f}")
+    logging.info(f"Mean Poison class f1_score : {mean_poison_class_f1_score:.5f}")
 
-    # mean_avg_acc = np.mean(np.array(avg_accs[start_cosdefence:]))
-    # mean_avg_precision = np.mean(np.array(avg_precisions[start_cosdefence:]))
-    # mean_avg_recall = np.mean(np.array(avg_recalls[start_cosdefence:]))
-    # mean_avg_f1_score = np.mean(np.array(avg_f1_scores[start_cosdefence:]))
-    # logging.info(f"Mean Avg accuracy: {mean_avg_acc}")
-    # logging.info(f"Mean Avg precision: {mean_avg_precision}")
-    # logging.info(f"Mean Avg class recall: {mean_avg_recall}")
-    # logging.info(f"Mean Avg class f1_score : {mean_avg_f1_score}")
+    mean_avg_acc = np.mean(np.array(avg_accs[start_cosdefence:]))
+    mean_avg_precision = np.mean(np.array(avg_precisions[start_cosdefence:]))
+    mean_avg_recall = np.mean(np.array(avg_recalls[start_cosdefence:]))
+    mean_avg_f1_score = np.mean(np.array(avg_f1_scores[start_cosdefence:]))
+    logging.info(f"Mean Avg accuracy: {mean_avg_acc:.5f}")
+    logging.info(f"Mean Avg precision: {mean_avg_precision:.5f}")
+    logging.info(f"Mean Avg class recall: {mean_avg_recall:.5f}")
+    logging.info(f"Mean Avg class f1_score : {mean_avg_f1_score:.5f}")
 
     if config['JSON_RESULTS']:
         logging.info("We saved results in json file")
@@ -1166,18 +1166,18 @@ def start_fl(with_config):
         # one final test is run and data is saved
         final_test_data = {}
         testing_loss, avg_acc, cls_accs, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
-        avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(y_true, y_pred, average='weighted')
-        cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None)
-        final_test_data['final_avg_acc'] = avg_acc
-        final_test_data['final_avg_precision'] = avg_precision
-        final_test_data['final_avg_recall'] = avg_recall
-        final_test_data['final_avg_f1_score'] = avg_f1_score
+        avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1)
+        cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None, zero_division=1)
+        final_test_data['avg_acc'] = avg_acc
+        final_test_data['avg_precision'] = avg_precision
+        final_test_data['avg_recall'] = avg_recall
+        final_test_data['avg_f1_score'] = avg_f1_score
 
-        final_test_data['final_poison_class_acc'] = cls_acc[poison_class]
-        final_test_data['final_poison_class_precision'] = cls_precisions[poison_class]
-        final_test_data['final_poison_class_recall'] = cls_recalls[poison_class]
-        final_test_data['final_poison_class_f1_score'] = cls_f1_scores[poison_class]
-        final_test_data['final_all_class_metric_vals'] = {'cls_accs': cls_accs, 'cls_precisions': cls_precisions, 'cls_recalls': cls_recalls, 'cls_f1_scores': cls_f1_scores }
+        final_test_data['poison_class_acc'] = cls_accs[poison_class]
+        final_test_data['poison_class_precision'] = cls_precisions[poison_class]
+        final_test_data['poison_class_recall'] = cls_recalls[poison_class]
+        final_test_data['poison_class_f1_score'] = cls_f1_scores[poison_class]
+        final_test_data['all_class_metric_vals'] = {'cls_accs': cls_accs, 'cls_precisions': cls_precisions.tolist(), 'cls_recalls': cls_recalls.tolist(), 'cls_f1_scores': cls_f1_scores.tolist() }
 
 
         result_data['final_test_data'] = final_test_data
@@ -1189,4 +1189,4 @@ def start_fl(with_config):
         with open(os.path.join(json_folder ,file_name), 'w') as result_file:
             json.dump(result_data, result_file)
 
-    return attack_srates, source_class_accs, total_accs, mean_attack_srate, mean_poison_class_acc
+    return mean_poison_class_acc, mean_avg_acc, mean_poison_class_f1_score, mean_avg_f1_score
