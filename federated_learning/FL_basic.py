@@ -181,6 +181,7 @@ def identify_poisoned(clients_selected, poisoned_clients):
     return posioned_client_selected
 
 def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fill_up=True):
+    print("inside fill_up_rem_trust_mat_and_vec")
     global current_system_trust_mat
     global current_system_trust_vec
 
@@ -189,8 +190,8 @@ def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fil
     current_system_trust_vec /= current_system_trust_vec.sum()
 
     ## we first normalize the trust matrix and then find mean and std for sampling where values are zero
-    sum_of_rows = current_system_trust_mat.sum(axis=1)
-    current_system_trust_mat = current_system_trust_mat / sum_of_rows[:, np.newaxis]
+    # sum_of_rows = current_system_trust_mat.sum(axis=1)
+    # current_system_trust_mat = current_system_trust_mat / sum_of_rows[:, np.newaxis]
     
     ## we also check here how many clients out of total clients were never selected while initial 
     ## trust building
@@ -208,11 +209,14 @@ def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fil
             
             if len(zero_interaction_clients) == total_clients:
                 not_selected_before_starting += 1
-            interaction_trust_mean = np.mean(np.array(interaction_trust_vals))
-            interaction_trust_std = np.std(np.array(interaction_trust_vals))
-            sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
-            for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
-                current_system_trust_mat[i][j] = sampled_trust
+            # print(f"client{i} had zero_interactions: {zero_interaction_clients}")
+
+            if len(interaction_trust_vals) > 1:
+                interaction_trust_mean = np.mean(np.array(interaction_trust_vals))
+                interaction_trust_std = np.std(np.array(interaction_trust_vals))
+                sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
+                for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
+                    current_system_trust_mat[i][j] = sampled_trust
             ## client i would have 100% trust on itself
             current_system_trust_mat[i][i] = (1+1)/200
 
@@ -232,6 +236,7 @@ def fill_up_rem_trust_mat_and_vec(total_clients, initial_validation_clients, fil
 
 
 def fill_initial_trust(computing_clients):
+    # print("Inside fill_initial_trust method")
     global config
     global initial_aggregate_grads
     global current_system_trust_mat
@@ -274,7 +279,7 @@ def fill_initial_trust(computing_clients):
     ## we don't normalize trust matrix and trust vec here, we do it only once before starting cos_defence
     
 
-def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
+def cos_defence(computing_clients, poisoned_clients):
     ## here poisoned clients are just used for analytics purpose
     global config
     
@@ -399,8 +404,6 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
             else:
                 pass 
         else:
-            # honest_trust_threshold = 0.0
-            # trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.2)
             pass
         
         ## we divide all trust values by 100 before setting these values in the matrix
@@ -448,7 +451,6 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
     ## we need to normalize the new_system_trust_mat row wise
     sum_of_rows = current_system_trust_mat.sum(axis=1)
     current_system_trust_mat = current_system_trust_mat / sum_of_rows[:, np.newaxis]
-    # new_system_trust_mat = new_system_trust_mat / new_system_trust_mat.max(axis=0)
 
     # Step 6
     # Now we calculate new system trust vector with the help of eigen_trust, since the variables are global
@@ -460,7 +462,7 @@ def cos_defence(computing_clients, poisoned_clients, threshold=0.0):
     # the computation.
     # Thresholding: If we want to set a threhold for minimum trust in order to taken into model averaging
     ## i.e. setting all trust values below threshold = 0.01 to zero.
-    current_system_trust_vec = np.where(current_system_trust_vec > threshold, current_system_trust_vec, 0.0)
+    # current_system_trust_vec = np.where(current_system_trust_vec > threshold, current_system_trust_vec, 0.0)
 
 
 
@@ -977,7 +979,9 @@ def start_fl(with_config):
 
         ## selecting clients based on probability or always choose clients with highest trust
         logging.debug(f"System trust vec sum: {current_system_trust_vec.sum()}")
+        # print(f"round: {i}, system trust vec: {current_system_trust_vec}")
         trust_scores.append(current_system_trust_vec.copy())
+        current_system_trust_vec /= current_system_trust_vec.sum()
         if config['COS_DEFENCE']:
             ## increase the learning rate now
             if i == start_cosdefence:
@@ -985,7 +989,7 @@ def start_fl(with_config):
                     for op_grp in optimizer.param_groups:
                         op_grp['lr'] = config['LEARNING_RATE']
 
-            if i >= start_cosdefence:       
+            if i >= start_cosdefence:
                 if config['SEL_METHOD'] == 0:
                     clients_selected = rng1.choice(config['TOTAL_CLIENTS'], size=int(config['TOTAL_CLIENTS'] * config['CLIENT_FRAC']), replace=False)
                 elif config['SEL_METHOD'] == 1:
@@ -1027,45 +1031,46 @@ def start_fl(with_config):
         # if turned on we change the client_weights from normal to computed by CosDefence
         logging.info(f"CosDefence is On: {config['COS_DEFENCE']}")
         if config['COS_DEFENCE']:
+            current_system_trust_vec /= current_system_trust_vec.sum()
             if i == config['GRAD_COLLECTION_START']:
                 save_for_feature_finding = True
-            elif i == start_cosdefence - 1:
-                indicative_grads, counts = find_indicative_grads(grad_bank, config['FEATURE_FINDING_ALGO'], config['CLUSTER_SEP'])
-                save_for_feature_finding = False
-                collect_features = True
-
+            
+            if i < start_cosdefence:
+                ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
+                fill_initial_trust(clients_selected)
                 ## to make sure when client are selected this value sums upto 1
-                current_system_trust_vec /= current_system_trust_vec.sum()
-                
-                ## this code is upload pre-calculated grad features.
-                # layer_names = ['fc1', 'fc2', 'output_layer']
-                # counts = 0
-                # for name in layer_names:
-                #     bias_arr = np.load(name + '.bias.npy')
-                #     weight_arr = np.load(name + '.weight.npy')
-                #     logging.info(f"Indicative grad of {name} has sizes")
-                #     logging.info(bias_arr.shape)
-                #     logging.info(weight_arr.shape)
-                #     indicative_grads[name + '.bias'] = bias_arr
-                #     indicative_grads[name + '.weight'] = weight_arr
-                #     counts += np.count_nonzero(bias_arr)
-                #     counts += np.count_nonzero(weight_arr)
-                
-                ## initializing aggregate grads so that now these grads can ve collected as flat vector
-                for k in range(config['TOTAL_CLIENTS']):
-                    aggregate_grads.append(torch.zeros((1, counts)))
+                if i == start_cosdefence - 1:
+                    indicative_grads, counts = find_indicative_grads(grad_bank, config['FEATURE_FINDING_ALGO'], config['CLUSTER_SEP'])
+                    save_for_feature_finding = False
+                    collect_features = True
+                    
+                    ## this code is upload pre-calculated grad features.
+                    # layer_names = ['fc1', 'fc2', 'output_layer']
+                    # counts = 0
+                    # for name in layer_names:
+                    #     bias_arr = np.load(name + '.bias.npy')
+                    #     weight_arr = np.load(name + '.weight.npy')
+                    #     logging.info(f"Indicative grad of {name} has sizes")
+                    #     logging.info(bias_arr.shape)
+                    #     logging.info(weight_arr.shape)
+                    #     indicative_grads[name + '.bias'] = bias_arr
+                    #     indicative_grads[name + '.weight'] = weight_arr
+                    #     counts += np.count_nonzero(bias_arr)
+                    #     counts += np.count_nonzero(weight_arr)
+                    
+                    ## initializing aggregate grads so that now these grads can ve collected as flat vector
+                    for k in range(config['TOTAL_CLIENTS']):
+                        aggregate_grads.append(torch.zeros((1, counts)))
 
-                logging.info(f"Found {counts} indicative grads")
-
-            elif i >= start_cosdefence:
+                    logging.info(f"Found {counts} indicative grads")
+            else:
                 ## before starting cos_defence, fill up matrix and vec using mean, std method
                 if not trust_initialized:
                     fill_up_rem_trust_mat_and_vec(config['TOTAL_CLIENTS'], initial_validation_clients, fill_up=True)
                     trust_initialized = True
-                cos_defence(clients_selected, poisoned_clients_selected, 0)
-            else:
-                ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
-                fill_initial_trust(clients_selected)
+                
+                cos_defence(clients_selected, poisoned_clients_selected)
+
 
 
         ## New weight setting strategy, if cos_defence is on then it modifies current_system_trust_vec, meaning

@@ -2,7 +2,7 @@
 DATASET: "mnist"
 TOTAL_CLIENTS: 100 # total clients 10|100
 CLIENT_FRAC: 0.2 # client fraction to select in each round 0.1|0.2|0.4
-POISON_FRAC: 0.2 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9
+POISON_FRAC: 0.1 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9
 CREATE_DATASET: False # if true it creates FL Dataset
 RANDOM_DATA: True # to create data and poison data randomly or with fixed seed 42 
 CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
@@ -35,9 +35,9 @@ ALPHA: 0.8   # parameter for updating system trust vector
 BETA: 0.8    # parameter for updating system trust matrix
 GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-TRUST_CUT_METHOD: 2  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
-HONEST_PARDON_FACTOR: 0.8 # it decides how much you want to pardon good clients getting bad trust values
-TRUST_MODIFY_STRATEGY: 1 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
+TRUST_CUT_METHOD: 0  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
+HONEST_PARDON_FACTOR: 1 # it decides how much you want to pardon good clients getting bad trust values
+TRUST_MODIFY_STRATEGY: 0 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
 
 
 
