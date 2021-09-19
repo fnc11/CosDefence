@@ -409,20 +409,23 @@ def cos_defence(computing_clients, poisoned_clients):
         ## we divide all trust values by 100 before setting these values in the matrix
         trust_arr /= 100
         comp_trusts = list(trust_arr)
-        for val_client, comp_client, new_trust_val in zip(validating_clients, computing_clients, comp_trusts):
-            prev_val = current_system_trust_mat[val_client, comp_client]
-            current_system_trust_mat[val_client, comp_client] = prev_val*config['BETA'] + (1-config['BETA'])*new_trust_val
+        for val_client in validating_clients:
+            for comp_client, new_trust_val in zip(computing_clients, comp_trusts):
+                if val_client != comp_client:
+                    prev_val = current_system_trust_mat[val_client, comp_client]
+                    current_system_trust_mat[val_client, comp_client] = prev_val*config['BETA'] + (1-config['BETA'])*new_trust_val
             
-            ## for analytics purposes
-            all_trust_vals.append(new_trust_val)
-            client_ids.append(comp_client)
-            if comp_client in poisoned_clients:
-                client_type = "minor_offender"
-                if comp_client//20 == 1:
-                    client_type = "major_offender"
-            else:
-                client_type = "honest"
-            all_client_types.append(client_type)
+                    ## for analytics purposes
+                    all_trust_vals.append(new_trust_val)
+                    client_ids.append(comp_client)
+                    validation_client_ids.append(val_client)
+                    if comp_client in poisoned_clients:
+                        client_type = "minor_offender"
+                        if comp_client//20 == 1:
+                            client_type = "major_offender"
+                    else:
+                        client_type = "honest"
+                    all_client_types.append(client_type)
     else:
         for val_client in validating_clients:
             val_vec = copy.deepcopy(aggregate_grads[val_client]).reshape(1, -1)
