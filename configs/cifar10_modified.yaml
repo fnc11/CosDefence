@@ -35,9 +35,9 @@ ALPHA: 0.8   # parameter for updating system trust vector
 BETA: 0.8   # parameter for updating system trust matrix
 GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-TRUST_CUT_METHOD: 0  # 0 for using clustering method to segregate, 1 for using median, mean, std method
-HONEST_PARDON_FACTOR: 0.8 # it decides how much you want to pardon good clients getting bad trust values
-TRUST_MODIFY_STRATEGY: 1 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
+TRUST_CUT_METHOD: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method
+HONEST_PARDON_FACTOR: 0.99 # it decides how much you want to pardon good clients getting bad trust values
+TRUST_MODIFY_STRATEGY: 0 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
 
 
 # LOG

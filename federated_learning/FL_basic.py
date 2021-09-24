@@ -339,15 +339,15 @@ def cos_defence(computing_clients, poisoned_clients):
 
             if config['TRUST_MODIFY_STRATEGY'] == 0:
                 if counts[0] > counts[1]:
-                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
+                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
                 elif counts[0] < counts[1]:
-                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
+                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
                 else:
                     kmeans_centers = kmeans.cluster_centers_
                     if kmeans_centers[0][0] > kmeans_centers[1][0]:
-                        trust_arr = np.where(labels == _vals[0], trust_arr, 0.3)
+                        trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
                     else:
-                        trust_arr = np.where(labels == _vals[1], trust_arr, 0.3)
+                        trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
             elif config['TRUST_MODIFY_STRATEGY'] == 1:
                 kmeans_centers = kmeans.cluster_centers_
                 if counts[0] > counts[1]:
@@ -390,10 +390,10 @@ def cos_defence(computing_clients, poisoned_clients):
             if config['TRUST_MODIFY_STRATEGY'] == 0:
                 if mean_val >= median_val:
                     honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.3)
+                    trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.0)
                 else:
                     honest_trust_threshold = median_val - config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.3)
+                    trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
             elif config['TRUST_MODIFY_STRATEGY'] == 1:
                 if mean_val >= median_val:
                     honest_trust_threshold = median_val + config['HONEST_PARDON_FACTOR']*std_dev
