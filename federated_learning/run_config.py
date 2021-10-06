@@ -22,11 +22,11 @@ def main():
         ## since we need to always compare cos_defence on and off, adding that variation here.
         # config['CREATE_DATASET'] = True
         config['COS_DEFENCE'] = False
-        print_results(config, start_fl(config))
+        print_results(config, start_fl(config, dist_id=0))
 
         config['CREATE_DATASET'] = False
         config['COS_DEFENCE'] = True
-        print_results(config, start_fl(config))
+        print_results(config, start_fl(config, dist_id=0))
 
 
 if __name__ == "__main__":

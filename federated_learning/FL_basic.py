@@ -803,7 +803,7 @@ def trust_clustering(trust_vals, labels):
     logging.info(kmeans.cluster_centers_)
     
 
-def start_fl(with_config):
+def start_fl(with_config, dist_id=0):
     global config
     config = with_config
     ## config short summary
@@ -871,9 +871,9 @@ def start_fl(with_config):
         torch.cuda.manual_seed_all(seed)
 
 
-    # If this flag is set first client data is created
+    # If this flag is set then client data is created again and saved with in given dist_id
     if config['CREATE_DATASET']:
-        create_client_data(config['RANDOM_DATA'], config['DATASET'], config['CLASS_RATIO'])
+        create_client_data(config['RANDOM_DATA'], config['DATASET'], config['CLASS_RATIO'], dist_id)
 
     # if config['COS_DEFENCE']:
     if config['GRAD_COLLECT_FOR'] == -1:
@@ -922,7 +922,7 @@ def start_fl(with_config):
     client_models = [copy.deepcopy(server_model).to(device) for _idx in range(config['TOTAL_CLIENTS'])]
 
     # location of data with the given config
-    data_folder = os.path.join(base_path, f"data/{config['DATASET']}/fed_data/label_flip0/poisoned_{int(config['POISON_FRAC']*100)}CLs/")
+    data_folder = os.path.join(base_path, f"data/{config['DATASET']}/fed_data/dist_{dist_id}/label_flip0/poisoned_{int(config['POISON_FRAC']*100)}CLs/")
 
     # specify learning rate to be used
     if config['COS_DEFENCE']:

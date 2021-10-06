@@ -14,18 +14,18 @@ global base_path
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-## this method just runs the experiment k times and summarizes the results with mean and std
-def run_and_summarize(config, times):
-    mean_poison_class_accs = np.zeros(times, dtype=float)
-    mean_avg_accs = np.zeros(times, dtype=float)
-    mean_poison_class_f1_scores = np.zeros(times, dtype=float)
-    mean_avg_f1_scores = np.zeros(times, dtype=float)
-    for i in range(times):
-        mean_poison_class_accs[i], mean_avg_accs[i], mean_poison_class_f1_scores[i], mean_avg_f1_scores[i] = start_fl(config)
+## this method just runs the experiment on k random dists and summarizes the results with mean and std
+def run_and_summarize(config, random_dists):
+    mean_poison_class_accs = np.zeros(random_dists, dtype=float)
+    mean_avg_accs = np.zeros(random_dists, dtype=float)
+    mean_poison_class_f1_scores = np.zeros(random_dists, dtype=float)
+    mean_avg_f1_scores = np.zeros(random_dists, dtype=float)
+    for i in range(random_dists):
+        mean_poison_class_accs[i], mean_avg_accs[i], mean_poison_class_f1_scores[i], mean_avg_f1_scores[i] = start_fl(config, dist_id=i)
 
     print("Selected config")
     print(config)
-    print(f"mean and std values after {times} random experiments")
+    print(f"mean and std values after {random_dists} random experiments")
     print(f"mean_mean_poison_class_accs: {np.mean(mean_poison_class_accs)} +- {np.std(mean_poison_class_accs)}")
     print(f"mean_mean_avg_accs: {np.mean(mean_avg_accs)} +- {np.std(mean_avg_accs)}")
     print(f"mean_mean_poison_class_f1_scores: {np.mean(mean_poison_class_f1_scores)} +- {np.std(mean_poison_class_f1_scores)}")
@@ -49,29 +49,24 @@ def run_and_summarize(config, times):
     return summary_data
 
 
-def run_off_on_summarize(config, times):
-    ## this method first generates a dataset radomly and then fixes the process so
-    ## that we can see how cos_defence off and on works on same environment
+def run_off_on_summarize(config, random_dists):
+    mean_poison_class_accs_off = np.zeros(random_dists, dtype=float)
+    mean_avg_accs_off = np.zeros(random_dists, dtype=float)
+    mean_poison_class_f1_scores_off = np.zeros(random_dists, dtype=float)
+    mean_avg_f1_scores_off = np.zeros(random_dists, dtype=float)
 
-    mean_poison_class_accs_off = np.zeros(times, dtype=float)
-    mean_avg_accs_off = np.zeros(times, dtype=float)
-    mean_poison_class_f1_scores_off = np.zeros(times, dtype=float)
-    mean_avg_f1_scores_off = np.zeros(times, dtype=float)
-
-    mean_poison_class_accs_on = np.zeros(times, dtype=float)
-    mean_avg_accs_on = np.zeros(times, dtype=float)
-    mean_poison_class_f1_scores_on = np.zeros(times, dtype=float)
-    mean_avg_f1_scores_on = np.zeros(times, dtype=float)
+    mean_poison_class_accs_on = np.zeros(random_dists, dtype=float)
+    mean_avg_accs_on = np.zeros(random_dists, dtype=float)
+    mean_poison_class_f1_scores_on = np.zeros(random_dists, dtype=float)
+    mean_avg_f1_scores_on = np.zeros(random_dists, dtype=float)
 
     config['RANDOM_PROCESS'] = False
-    for i in range(times):
-        config['CREATE_DATASET'] = True
+    for i in range(random_dists):
         config['COS_DEFENCE'] = False
-        mean_poison_class_accs_off[i], mean_avg_accs_off[i], mean_poison_class_f1_scores_off[i], mean_avg_f1_scores_off[i] = start_fl(config)
+        mean_poison_class_accs_off[i], mean_avg_accs_off[i], mean_poison_class_f1_scores_off[i], mean_avg_f1_scores_off[i] = start_fl(config, dist_id=i)
 
-        config['CREATE_DATASET'] = False
         config['COS_DEFENCE'] = True
-        mean_poison_class_accs_on[i], mean_avg_accs_on[i], mean_poison_class_f1_scores_on[i], mean_avg_f1_scores_on[i] = start_fl(config)
+        mean_poison_class_accs_on[i], mean_avg_accs_on[i], mean_poison_class_f1_scores_on[i], mean_avg_f1_scores_on[i] = start_fl(config, dist_id=i)
 
 
     summary_data = {}
@@ -81,7 +76,7 @@ def run_off_on_summarize(config, times):
     print("Selected config")
     config['COS_DEFENCE'] = False
     print(config)
-    print(f"mean and std values after {times} random experiments when cos_defence: {config['COS_DEFENCE']}")
+    print(f"mean and std values after {random_dists} random experiments when cos_defence: {config['COS_DEFENCE']}")
     print(f"mean_mean_poison_class_accs: {np.mean(mean_poison_class_accs_off)} +- {np.std(mean_poison_class_accs_off)}")
     print(f"mean_mean_avg_accs: {np.mean(mean_avg_accs_off)} +- {np.std(mean_avg_accs_off)}")
     print(f"mean_mean_poison_class_f1_scores: {np.mean(mean_poison_class_f1_scores_off)} +- {np.std(mean_poison_class_f1_scores_off)}")
@@ -106,7 +101,7 @@ def run_off_on_summarize(config, times):
     print("Selected config")
     config['COS_DEFENCE'] = True
     print(config)
-    print(f"mean and std values after {times} random experiments when cos_defence: {config['COS_DEFENCE']}")
+    print(f"mean and std values after {random_dists} random experiments when cos_defence: {config['COS_DEFENCE']}")
     print(f"mean_mean_poison_class_accs: {np.mean(mean_poison_class_accs_on)} +- {np.std(mean_poison_class_accs_on)}")
     print(f"mean_mean_avg_accs: {np.mean(mean_avg_accs_on)} +- {np.std(mean_avg_accs_on)}")
     print(f"mean_mean_poison_class_f1_scores: {np.mean(mean_poison_class_f1_scores_on)} +- {np.std(mean_poison_class_f1_scores_on)}")
@@ -133,29 +128,42 @@ def main():
     summary_data_list = list()
     with open(config_file) as cfg_file:
         config = yaml.safe_load(cfg_file)
-        
+
+        ## First create 5, 10 dists which you want to try, then run for those distributions
+        ## distribution creation can be done in single time using prepare_data script
+        ## we don't create these dist again, because it increases randomness and we can't compare
+        ## the results with different settings.
+        random_dists = 2
+                
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
         config['CLIENT_FRAC'] = 0.2
-
-        repeat = 5
-        config['POISON_FRAC'] = 0.0
-        summary_data_list.append(run_off_on_summarize(config, repeat))
         
-        config['POISON_FRAC'] = 0.1
-        summary_data_list.append(run_off_on_summarize(config, repeat))
+        p_fracs = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+        for p_frac in p_fracs:
+            config['POISON_FRAC'] = p_frac
+            config['COS_DEFENCE'] = False
+            summary_data_list.append(run_and_summarize(config, random_dists))
+            config['COS_DEFENCE'] = True
+            summary_data_list.append(run_and_summarize(config, random_dists))
 
-        config['POISON_FRAC'] = 0.2
-        summary_data_list.append(run_off_on_summarize(config, repeat))
+        # config['POISON_FRAC'] = 0.0
+        # summary_data_list.append(run_off_on_summarize(config, repeat))
+        
+        # config['POISON_FRAC'] = 0.1
+        # summary_data_list.append(run_off_on_summarize(config, repeat))
 
-        config['POISON_FRAC'] = 0.3
-        summary_data_list.append(run_off_on_summarize(config, repeat))
+        # config['POISON_FRAC'] = 0.2
+        # summary_data_list.append(run_off_on_summarize(config, repeat))
 
-        config['POISON_FRAC'] = 0.4
-        summary_data_list.append(run_off_on_summarize(config, repeat))
+        # config['POISON_FRAC'] = 0.3
+        # summary_data_list.append(run_off_on_summarize(config, repeat))
 
-        config['POISON_FRAC'] = 0.5
-        summary_data_list.append(run_off_on_summarize(config, repeat))
+        # config['POISON_FRAC'] = 0.4
+        # summary_data_list.append(run_off_on_summarize(config, repeat))
+
+        # config['POISON_FRAC'] = 0.5
+        # summary_data_list.append(run_off_on_summarize(config, repeat))
 
         # repeat = 5
         # config['COS_DEFENCE'] = False
