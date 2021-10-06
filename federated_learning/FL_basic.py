@@ -421,7 +421,7 @@ def cos_defence(computing_clients, poisoned_clients):
                     validation_client_ids.append(val_client)
                     if comp_client in poisoned_clients:
                         client_type = "minor_offender"
-                        if comp_client//20 == 1:
+                        if comp_client//10 == 2:
                             client_type = "major_offender"
                     else:
                         client_type = "honest"
@@ -445,7 +445,7 @@ def cos_defence(computing_clients, poisoned_clients):
                     validation_client_ids.append(val_client)
                     if comp_client in poisoned_clients:
                         client_type = "minor_offender"
-                        if comp_client//20 == 1:
+                        if comp_client//10 == 2:
                             client_type = "major_offender"
                     else:
                         client_type = "honest"
@@ -752,7 +752,7 @@ def gen_accuracy_poison_data_plot(poison_class_accuracy, avg_accuracy, all_poiso
         poisoned_clients_in_round = all_poisoned_client_selected[fed_round]
         poisoned_data_in_round = 0
         for pclient in poisoned_clients_in_round:
-            if pclient//20 == 1:
+            if pclient//10 == 2:
                 poisoned_data_in_round += major_class_examples
             else:
                 poisoned_data_in_round += minor_class_examples
@@ -947,7 +947,7 @@ def start_fl(with_config):
         ## printing poisoned client composition in the environment
         major_offender_count = 0
         for poisoned_client in poisoned_clients:
-            if poisoned_client//20 == 1:
+            if poisoned_client//10 == 2:
                 major_offender_count += 1
         print(f"Major offender: {major_offender_count}, Minor offender: {len(poisoned_clients)-major_offender_count}")
 
