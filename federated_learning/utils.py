@@ -2,6 +2,7 @@ from torch import tensor
 from sklearn.cluster import KMeans
 import warnings
 import logging
+import copy
 
 import numpy as np
 import json
@@ -105,3 +106,40 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(NpEncoder, self).default(obj)
+
+
+
+class ComputationRecord:
+    """[summary]
+    This class is for storing all variables we need to keep track of during computation.
+    """
+    def __init__(self, config):
+        ## experiment config
+        self.config = copy.deepcopy(config)
+        ## system trust vector, determines trustworthiness of clients in the setup
+        self.csystem_tvec = None
+        ## system trust matrix, how much clients trust each other
+        self.csystem_tmat = None
+
+        ## global grads, stores aggregated values of the grads, we will initialize it based on the number of parameters it stores
+        ## e.g. last layer of the model
+        self.sel_layer_names = None
+        self.agg_grads = None
+        self.initial_agg_grads = None
+
+        ## grad_bank is a dictionary which stores gradients, when Auror algo is used to find important neural units in the model,
+        ## it store gradients of all client models selected in first K federated rounds layer wise
+        self.grad_bank = None
+        ## boolean flag that indicates until when grad should be saved for finding important units
+        self.save_for_ft_finding = None
+        ## stores the location of important gradients layerwise, once we have the result from Auror algo
+        self.indicative_grads = None
+        ## boolean flag, when to start collecting grads from important neural units
+        self.collect_features = None
+
+        ## for analytics, we plot what trust value clients got, all list variables
+        ## in case of collab mode validation client ids are not stored
+        self.client_ids = None
+        self.vclient_ids = None 
+        self.all_trust_vals = None
+        self.all_client_types = None
