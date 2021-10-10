@@ -352,7 +352,7 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
             pass
         
         ## we divide all trust values by 100 before setting these values in the matrix
-        trust_arr /= 100
+        # trust_arr /= 100
         comp_trusts = list(trust_arr)
         for val_client in validating_clients:
             for comp_client, new_trust_val in zip(computing_clients, comp_trusts):
