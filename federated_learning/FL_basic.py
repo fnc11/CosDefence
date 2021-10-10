@@ -769,8 +769,10 @@ def start_fl(with_config, dist_id=0):
     ## trust scores of the system after every fed rounds are saved in this list
     trust_scores = list()
 
+    def get_device():
+        return "cuda" if torch.cuda.is_available() else "cpu"
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(get_device())
     logging.info(f"Computing Device:{device}")
     if comp_record.config['RANDOM_PROCESS']:
         rng1 = default_rng()

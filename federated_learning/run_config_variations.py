@@ -6,6 +6,9 @@ import os
 import yaml
 import numpy as np
 import copy
+import itertools
+import functools
+from multiprocessing import Process, Pipe
 
 from FL_basic import start_fl
 
@@ -14,7 +17,30 @@ global base_path
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def parallelize(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+
+        def invoke_method_in_different_process(*args, **kwargs):
+            conn = kwargs.pop('conn')
+            result = f(*args, **kwargs)
+            conn.send(result)
+            conn.close()
+
+        parent_conn, child_conn = Pipe()
+        kwargs['conn'] = child_conn
+
+        child_process = Process(
+            target=invoke_method_in_different_process,
+            args=args,
+            kwargs=kwargs
+        )
+        child_process.start()
+        return child_process, parent_conn
+    return wrapper
+
 ## this method just runs the experiment on k random dists and summarizes the results with mean and std
+@parallelize
 def run_and_summarize(config, random_dists):
     mean_poison_class_accs = np.zeros(random_dists, dtype=float)
     mean_avg_accs = np.zeros(random_dists, dtype=float)
@@ -54,6 +80,12 @@ def run_off_on_summarize(config, random_dists):
     mean_avg_accs_off = np.zeros(random_dists, dtype=float)
     mean_poison_class_f1_scores_off = np.zeros(random_dists, dtype=float)
     mean_avg_f1_scores_off = np.zeros(random_dists, dtype=float)
+
+
+@parallelize
+def run_off_on_summarize(config, times):
+    ## this method first generates a dataset radomly and then fixes the process so
+    ## that we can see how cos_defence off and on works on same environment
 
     mean_poison_class_accs_on = np.zeros(random_dists, dtype=float)
     mean_avg_accs_on = np.zeros(random_dists, dtype=float)
@@ -133,113 +165,43 @@ def main():
         ## distribution creation can be done in single time using prepare_data script
         ## we don't create these dist again, because it increases randomness and we can't compare
         ## the results with different settings.
-        random_dists = 2
+        # random_dists = 2
                 
         ## any type of variations can be added in nested structure
         ## first one without cos_defence on with fixed environment
-        config['CLIENT_FRAC'] = 0.2
+
+        # config['CLIENT_FRAC'] = 0.2
         
-        p_fracs = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
-        for p_frac in p_fracs:
-            config['POISON_FRAC'] = p_frac
-            config['COS_DEFENCE'] = False
-            summary_data_list.append(run_and_summarize(config, random_dists))
-            config['COS_DEFENCE'] = True
-            summary_data_list.append(run_and_summarize(config, random_dists))
+        # p_fracs = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+        # for p_frac in p_fracs:
+        #     config['POISON_FRAC'] = p_frac
+        #     config['COS_DEFENCE'] = False
+        #     summary_data_list.append(run_and_summarize(config, random_dists))
+        #     config['COS_DEFENCE'] = True
+        #     summary_data_list.append(run_and_summarize(config, random_dists))
 
-        # config['POISON_FRAC'] = 0.0
-        # summary_data_list.append(run_off_on_summarize(config, repeat))
-        
-        # config['POISON_FRAC'] = 0.1
-        # summary_data_list.append(run_off_on_summarize(config, repeat))
+    configs_to_go_over = {
+        'CLIENT_FRAC': [0.2],
+        'POISON_FRAC': [0.0, 0.1, 0.2, 0.4, 0.5]
+    }
+    random_dists = 10
+    child_processes = []
+    for config_values in itertools.product(*configs_to_go_over.values()):
+        for setting, value in zip(configs_to_go_over.keys(), config_values):
+            config[setting] = value
+        child_processes.append(run_and_summarize(config=config, random_dists=random_dists))
+    for process, parent_conn in child_processes:
+        summary_data_list.append(parent_conn.recv())
+        process.join()
 
-        # config['POISON_FRAC'] = 0.2
-        # summary_data_list.append(run_off_on_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.3
-        # summary_data_list.append(run_off_on_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.4
-        # summary_data_list.append(run_off_on_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.5
-        # summary_data_list.append(run_off_on_summarize(config, repeat))
-
-        # repeat = 5
-        # config['COS_DEFENCE'] = False
-        # summary_data_list.append(run_and_summarize(config, repeat))
-        # ## now after turning cos_defence on
-        # sep_list = [0.001, 0.01, 0.1, 1.0, 2.0]
-        # config['COS_DEFENCE'] = True
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.1
-        # config['COS_DEFENCE'] = False
-        # summary_data_list.append(run_and_summarize(config, repeat))
-        # ## now after turning cos_defence on
-        # config['COS_DEFENCE'] = True
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.2
-        # config['COS_DEFENCE'] = False
-        # summary_data_list.append(run_and_summarize(config, repeat))
-        # ## now after turning cos_defence on
-        # config['COS_DEFENCE'] = True
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.3
-        # config['COS_DEFENCE'] = False
-        # summary_data_list.append(run_and_summarize(config, repeat))
-        # ## now after turning cos_defence on
-        # config['COS_DEFENCE'] = True
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-
-        # config['POISON_FRAC'] = 0.4
-        # config['COS_DEFENCE'] = False
-        # summary_data_list.append(run_and_summarize(config, repeat))
-        # ## now after turning cos_defence on
-        # config['COS_DEFENCE'] = True
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-        # sep_list = [0.001, 0.002, 0.005, 0.007, 0.01]
-        # config['FEATURE_FINDING_ALGO'] = 'auror'
-
-        # config['CONSIDER_LAYERS'] = 'l1'
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-
-        # config['CONSIDER_LAYERS'] = 'l2'
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-
-        # config['CONSIDER_LAYERS'] = 'f1l1'
-        # for c_sep in sep_list:
-        #     config['CLUSTER_SEP'] = c_sep
-        #     summary_data_list.append(run_and_summarize(config, repeat))
-            
- 
-
-
-        ## storing results in a json file
-        json_folder = os.path.join(base_path, 'results/json_files/')
-        Path(json_folder).mkdir(parents=True, exist_ok=True)
-        config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_FDRS{config['FED_ROUNDS']}"
-        file_name = 'summary_{}_{}.json'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
-        all_summary_data = dict()
-        all_summary_data['summary'] = summary_data_list
-        with open(os.path.join(json_folder ,file_name), 'w') as result_file:
-            json.dump(all_summary_data, result_file)
+    json_folder = os.path.join(base_path, 'results/json_files/')
+    Path(json_folder).mkdir(parents=True, exist_ok=True)
+    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_FDRS{config['FED_ROUNDS']}"
+    file_name = 'summary_{}_{}.json'.format(config_details, {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())})
+    all_summary_data = dict()
+    all_summary_data['summary'] = summary_data_list
+    with open(os.path.join(json_folder ,file_name), 'w') as result_file:
+        json.dump(all_summary_data, result_file)
 
 
 
