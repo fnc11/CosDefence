@@ -352,7 +352,7 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
             pass
         
         ## we divide all trust values by 100 before setting these values in the matrix
-        # trust_arr /= 100
+        trust_arr /= 100
         comp_trusts = list(trust_arr)
         for val_client in validating_clients:
             for comp_client, new_trust_val in zip(computing_clients, comp_trusts):
@@ -748,7 +748,7 @@ def start_fl(with_config, dist_id=0):
     logging.basicConfig(filename=logs_file, level=getattr(logging, comp_record.config['LOG_LEVEL']))
     logging.info(comp_record.config)
 
-    comp_record.csystem_tvec = set_initial_trust_vec("ones")
+    comp_record.csystem_tvec = set_initial_trust_vec("zeros")
 
     ## inital system trust need to be set using three type of distributions
     comp_record.csystem_tmat = set_initial_trust_mat("ones")  #
