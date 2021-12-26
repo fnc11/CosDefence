@@ -143,21 +143,10 @@ def identify_poisoned(clients_selected, poisoned_clients):
 
     return posioned_client_selected
 
-def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients, fill_up=True):
-    print("inside fill_up_rem_trust_mat_and_vec")
+def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients):
 
-    ## Since we pick clients based on trust vec while cos_defence is selected, so we need to make sure that 
-    ## trust vec sums upto 1
-    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
-
-    ## we first normalize the trust matrix and then find mean and std for sampling where values are zero
-    # sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
-    # comp_record.csystem_tmat = comp_record.csystem_tmat / sum_of_rows[:, np.newaxis]
-    
-    ## we also check here how many clients out of total clients were never selected while initial 
-    ## trust building
-    not_selected_before_starting = 0
-    if fill_up:
+    if comp_record.config['TRUST_SAMPLING']:
+        not_selected_before_starting = 0
         ## step 1, find mean, std from the non_zero values and also note down these clients
         for i in range(comp_record.config['TOTAL_CLIENTS']):
             zero_interaction_clients = list()
@@ -178,10 +167,16 @@ def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients, fill_
                 sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
                 for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
                     comp_record.csystem_tmat[i][j] = sampled_trust
-            ## client i would have 100% trust on itself
-            comp_record.csystem_tmat[i][i] = (1+1)/200
+        print(f"{not_selected_before_starting} clients were not selected in starting rounds")
 
-    print(f"{not_selected_before_starting} clients were not selected in starting rounds")
+
+    sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
+    comp_record.csystem_tmat = comp_record.csystem_tmat / sum_of_rows[:, np.newaxis]
+
+    # client i would have 100% trust on itself
+    for i in range(comp_record.config['TOTAL_CLIENTS']):
+        comp_record.csystem_tmat[i][i] = (1+1)/200
+
     ## also we give 100% trust between intial_validation_clients, since we starting with same initial trust 0.01
     ## between all clients, we just add this extra trust
     num_validating_clients = len(initial_validation_clients)
@@ -193,6 +188,10 @@ def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients, fill_
     ## renormalizing the trust matrix
     sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
     comp_record.csystem_tmat = comp_record.csystem_tmat / sum_of_rows[:, np.newaxis]
+
+    ## Since we pick clients based on trust vec while cos_defence is selected, so we need to make sure that 
+    ## trust vec sums upto 1
+    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
 
 
 
@@ -352,7 +351,9 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
             pass
         
         ## we divide all trust values by 100 before setting these values in the matrix
-        trust_arr /= 100
+        if comp_record.config['TRUST_NORMALIZATION']:
+            trust_arr /= 100
+    
         comp_trusts = list(trust_arr)
         for val_client in validating_clients:
             for comp_client, new_trust_val in zip(computing_clients, comp_trusts):
@@ -748,7 +749,7 @@ def start_fl(with_config, dist_id=0):
     logging.basicConfig(filename=logs_file, level=getattr(logging, comp_record.config['LOG_LEVEL']))
     logging.info(comp_record.config)
 
-    comp_record.csystem_tvec = set_initial_trust_vec("zeros")
+    comp_record.csystem_tvec = set_initial_trust_vec("ones")
 
     ## inital system trust need to be set using three type of distributions
     comp_record.csystem_tmat = set_initial_trust_mat("ones")  #
@@ -898,7 +899,6 @@ def start_fl(with_config, dist_id=0):
         logging.debug(f"System trust vec sum: {comp_record.csystem_tvec.sum()}")
         # print(f"round: {i}, system trust vec: {comp_record.csystem_tvec}")
         trust_scores.append(comp_record.csystem_tvec.copy())
-        comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
         if comp_record.config['COS_DEFENCE']:
             ## increase the learning rate now
             if i == start_cosdefence:
@@ -948,7 +948,6 @@ def start_fl(with_config, dist_id=0):
         # if turned on we change the client_weights from normal to computed by CosDefence
         logging.info(f"CosDefence is On: {comp_record.config['COS_DEFENCE']}")
         if comp_record.config['COS_DEFENCE']:
-            comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
             if i == comp_record.config['GRAD_COLLECTION_START']:
                 comp_record.save_for_ft_finding = True
             
@@ -975,6 +974,7 @@ def start_fl(with_config, dist_id=0):
                     #     counts += np.count_nonzero(bias_arr)
                     #     counts += np.count_nonzero(weight_arr)
                     
+                    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
                     ## initializing aggregate grads so that now these grads can ve collected as flat vector
                     for k in range(comp_record.config['TOTAL_CLIENTS']):
                         comp_record.agg_grads.append(torch.zeros((1, counts)))
@@ -983,7 +983,7 @@ def start_fl(with_config, dist_id=0):
             else:
                 ## before starting cos_defence, fill up matrix and vec using mean, std method
                 if not trust_initialized:
-                    fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients, fill_up=True)
+                    fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients)
                     trust_initialized = True
                 
                 cos_defence(comp_record, clients_selected, poisoned_clients_selected)
