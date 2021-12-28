@@ -20,8 +20,8 @@ def main():
         config = yaml.safe_load(cfg_file)
         ## don't modify config here, just update the setting in corresponding modified config file and give the file name
         ## since we need to always compare cos_defence on and off, adding that variation here.
+        config['CREATE_DATASET'] = True
         config['COS_DEFENCE'] = True
-        # config['FED_ROUNDS'] = 12
         print_results(config, start_fl(config, dist_id=0))
 
         config['CREATE_DATASET'] = False
@@ -31,7 +31,6 @@ def main():
 
         config['TRUST_NORMALIZATION'] = False
         config['TRUST_SAMPLING'] = True
-        print_results(config, start_fl(config, dist_id=0))
 
 
 if __name__ == "__main__":
