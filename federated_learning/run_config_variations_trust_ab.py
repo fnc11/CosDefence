@@ -178,8 +178,8 @@ def run_sequentially(summary_data_list, initial_config, random_dists):
     initial_config['POISON_FRAC'] = 0.2
     initial_config['CLIENT_FRAC'] = 0.2
     variations = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    variations = [0.0, 0.1, 0.9, 1.0]
-    # variations = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    # variations = [0.0, 0.1, 0.9, 1.0]
+    variations = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
     for alpha in variations:
         initial_config['ALPHA'] = alpha
         for beta in variations:
@@ -208,7 +208,10 @@ def main():
         ## first one without cos_defence on with fixed environment
         # summary_data_list = run_with_parallization(summary_data_list, config, 5)
         # config['FED_ROUNDS'] = 10
+        start_time = time.perf_counter()
         summary_data_list = run_sequentially(summary_data_list, config, 5)
+        end_time = time.perf_counter()
+        print(f"Took {end_time-start_time} secs")
 
 
 

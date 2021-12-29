@@ -30,18 +30,18 @@ GRAD_AGG: True   # Collect all gradients over the iterations or just use last it
 FEATURE_FINDING_ALGO: auror  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
 GRAD_COLLECTION_START: 0   # when to start collecting grads 
 GRAD_COLLECT_FOR: -1   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
-CLUSTER_SEP: 1.0   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
+CLUSTER_SEP: 0.01   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
 ALPHA: 0.8   # parameter for updating system trust vector
 BETA: 0.8   # parameter for updating system trust matrix
 GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
 TRUST_CUT_METHOD: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method
-HONEST_PARDON_FACTOR: 0.99 # it decides how much you want to pardon good clients getting bad trust values
+HONEST_PARDON_FACTOR: 1.0 # it decides how much you want to pardon good clients getting bad trust values
 TRUST_MODIFY_STRATEGY: 0 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
 TRUST_SAMPLING: False # to fill matix by sampling
 TRUST_NORMALIZATION: False # to normalize trust values before filling in the matrix
 
 # LOG
-LOG_LEVEL: 'INFO' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
+LOG_LEVEL: 'ERROR' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
 JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization
 

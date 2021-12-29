@@ -40,7 +40,7 @@ def parallelize(f):
     return wrapper
 
 ## this method just runs the experiment on k random dists and summarizes the results with mean and std
-@parallelize
+# @parallelize
 def run_and_summarize(config, random_dists):
     mean_poison_class_accs = np.zeros(random_dists, dtype=float)
     mean_avg_accs = np.zeros(random_dists, dtype=float)

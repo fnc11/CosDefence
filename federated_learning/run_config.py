@@ -1,6 +1,7 @@
 import sys
 import os
 import yaml
+import time
 
 from FL_basic import start_fl
 
@@ -22,16 +23,19 @@ def main():
         ## since we need to always compare cos_defence on and off, adding that variation here.
         config['COS_DEFENCE'] = True
         # config['FED_ROUNDS'] = 12
+        start_time = time.perf_counter()
         print_results(config, start_fl(config, dist_id=0))
+        end_time = time.perf_counter()
+        print(f"Took {end_time-start_time} secs")
 
-        config['CREATE_DATASET'] = False
+        # config['CREATE_DATASET'] = False
 
-        config['TRUST_NORMALIZATION'] = True
-        print_results(config, start_fl(config, dist_id=0))
+        # config['TRUST_NORMALIZATION'] = True
+        # print_results(config, start_fl(config, dist_id=0))
 
-        config['TRUST_NORMALIZATION'] = False
-        config['TRUST_SAMPLING'] = True
-        print_results(config, start_fl(config, dist_id=0))
+        # config['TRUST_NORMALIZATION'] = False
+        # config['TRUST_SAMPLING'] = True
+        # print_results(config, start_fl(config, dist_id=0))
 
 
 if __name__ == "__main__":
