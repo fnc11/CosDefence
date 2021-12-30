@@ -4,7 +4,7 @@
 ### name the job
 #SBATCH --job-name=cifar10
 ### job run time
-#SBATCH --time=10:00:00
+#SBATCH --time=03:00:00
 ### declare the merged STDOUT/STDERR file
 #SBATCH --output=cifar10_logs.%J.txt
 ###
@@ -19,7 +19,7 @@ cd $HOME/repos/CosDefence/federated_learning
 ### load modules
 module switch intel gcc
 module load python/3.8.7
-module load cuda/111
+module load cuda/11.1
 module load cudnn/8.0.5
 # pip3 install --user tensorboard
 # pip3 install --user -U scikit-learn
