@@ -50,7 +50,7 @@ def get_dataset(dataset_name):
     return trainset
 
 
-def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio=10, dist_id=0):
+def create_client_data(rng, dataset_name='cifar10', class_ratio=10, dist_id=0):
     class_ids = defaultdict(list)
     trainset = get_dataset(dataset_name)
     for i in range(len(trainset)):
@@ -128,14 +128,9 @@ def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio
         lbl_data = torch.stack(client_lbl_tensors[i])
         client_data.append((img_data, lbl_data))  # If we want to save as tuple or tensor we can decide
 
-    poison_params = [0, 10, 20, 30, 40, 50]  # no of clients poisoned out of 100
+    poison_params = [0, 10, 20, 30, 40, 50, 60]  # no of clients poisoned out of 100
     label_flips = [(2, 9)]
     total_clients = 100
-    if random_setting:
-        rng = default_rng()
-    else:
-        seed = 42
-        rng = default_rng(seed)
     global base_path
     root_save_folder = os.path.join(base_path, f'data/{dataset_name}/fed_data/dist_{dist_id}/')
     # in case folder were present already, cleans the folder inside so that if we accidentally
@@ -237,8 +232,13 @@ def main():
     dists_to_create = int(sys.argv[2])
     with open(config_file) as cfg_file:
         config = yaml.safe_load(cfg_file)
+        if config['RANDOM_DATA']:
+            rng = default_rng()
+        else:
+            seed = 42
+            rng = default_rng(seed)
         for dist_id in range(dists_to_create):
-            create_client_data(config['RANDOM_DATA'], config['DATASET'], config['CLASS_RATIO'], dist_id=dist_id)
+            create_client_data(rng, config['DATASET'], config['CLASS_RATIO'], dist_id=dist_id)
 
 if __name__ == '__main__':
     main()

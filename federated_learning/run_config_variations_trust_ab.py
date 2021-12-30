@@ -173,18 +173,19 @@ def run_with_parallization(summary_data_list, initial_config, random_dists):
     
 
 
-def run_sequentially(summary_data_list, initial_config, random_dists):
-    initial_config['COS_DEFENCE'] = True
-    initial_config['POISON_FRAC'] = 0.2
-    initial_config['CLIENT_FRAC'] = 0.2
+def run_sequentially(summary_data_list, config, random_dists):
+    config['COS_DEFENCE'] = True
+    config['POISON_FRAC'] = 0.2
+    config['CLIENT_FRAC'] = 0.2
     variations = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    # variations = [0.0, 0.1, 0.9, 1.0]
-    variations = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
     for alpha in variations:
-        initial_config['ALPHA'] = alpha
+        config['ALPHA'] = alpha
         for beta in variations:
-            initial_config['BETA'] = beta
-            summary_data_list.append(run_and_summarize(initial_config, random_dists))
+            config['BETA'] = beta
+            try:
+                summary_data_list.append(run_and_summarize(config, random_dists))
+            except Exception as e:
+                print(e)
     
     return summary_data_list
 

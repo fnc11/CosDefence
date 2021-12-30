@@ -786,10 +786,15 @@ def start_fl(with_config, dist_id=0):
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
+    if comp_record.config['RANDOM_DATA']:
+        rng3 = default_rng()
+    else:
+        seed = 42
+        rng3 = default_rng(seed)
 
     # If this flag is set then client data is created again and saved with in given dist_id
     if comp_record.config['CREATE_DATASET']:
-        create_client_data(comp_record.config['RANDOM_DATA'], comp_record.config['DATASET'], comp_record.config['CLASS_RATIO'], dist_id)
+        create_client_data(rng3, comp_record.config['DATASET'], comp_record.config['CLASS_RATIO'], dist_id)
 
     # if comp_record.config['COS_DEFENCE']:
     if comp_record.config['GRAD_COLLECT_FOR'] == -1:
