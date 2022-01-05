@@ -167,6 +167,7 @@ def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients):
                 sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
                 for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
                     comp_record.csystem_tmat[i][j] = sampled_trust
+                    comp_record.csystem_tmat[j][i] = sampled_trust
         print(f"{not_selected_before_starting} clients were not selected in starting rounds")
 
 
@@ -272,7 +273,7 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
         trust_arr = np.array(comp_trusts).reshape(-1, 1)
 
         ##This implementation needs to be done for individual mode scenario.
-        if comp_record.config['TRUST_CUT_METHOD'] == 0:
+        if comp_record.config['TRUST_MODIFY_STRATEGY'] == 0:
             ## make 2 clusters assuming one for honest (with more number of clients) and one for malicious (with low number)
             kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
             labels = kmeans.predict(trust_arr)
@@ -281,18 +282,7 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
             trust_arr = trust_arr.flatten()
 
 
-            if comp_record.config['TRUST_MODIFY_STRATEGY'] == 0:
-                if counts[0] > counts[1]:
-                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
-                elif counts[0] < counts[1]:
-                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
-                else:
-                    kmeans_centers = kmeans.cluster_centers_
-                    if kmeans_centers[0][0] > kmeans_centers[1][0]:
-                        trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
-                    else:
-                        trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
-            elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 1:
+            if comp_record.config['RESET_AXIS']:
                 kmeans_centers = kmeans.cluster_centers_
                 if counts[0] > counts[1]:
                     trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
@@ -305,7 +295,16 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
                     else:
                         trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
             else:
-                pass
+                if counts[0] > counts[1]:
+                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
+                elif counts[0] < counts[1]:
+                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
+                else:
+                    kmeans_centers = kmeans.cluster_centers_
+                    if kmeans_centers[0][0] > kmeans_centers[1][0]:
+                        trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
+                    else:
+                        trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
 
             
             # kmeans_centers = kmeans.cluster_centers_
@@ -326,19 +325,12 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
             # logging.info(f"{majority_mean}, {minortiy_mean}, {center_dist}, {lower_trust_bound}, {upper_trust_bound}")
 
             logging.info(f"modified arr: {trust_arr}")
-        elif comp_record.config['TRUST_CUT_METHOD'] == 1:
+        elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 1:
             ## AFA method
             mean_val = np.mean(trust_arr)
             median_val = np.median(trust_arr)
             std_dev = np.std(trust_arr)
-            if comp_record.config['TRUST_MODIFY_STRATEGY'] == 0:
-                if mean_val >= median_val:
-                    honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.0)
-                else:
-                    honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
-            elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 1:
+            if comp_record.config['RESET_AXIS']:
                 if mean_val >= median_val:
                     honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
                     trust_arr = np.where(trust_arr <= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
@@ -346,7 +338,12 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
                     honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
                     trust_arr = np.where(trust_arr >= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
             else:
-                pass 
+                if mean_val >= median_val:
+                    honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
+                    trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.0)
+                else:
+                    honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
+                    trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
         else:
             pass
         
@@ -598,18 +595,24 @@ def gen_trust_plots(config, client_ids, validation_client_ids, trust_vals, label
     ## 1 D Data strip
     strip_fig = px.strip(trust_df, x="modified_trust", y="client_label", color="client_label", color_discrete_map={
                 "honest": '#00CC96',
-                "minor_offender": '#EF553B',
-                "major_offender": '#AB63FA'})
-    strip_fig.update_layout(title='Trust given by validation clients')
-    strip_fig.write_html(os.path.join(save_location,'{}_trust_strip_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+                "minor_offender": '#FFA15A',
+                "major_offender": '#EF553B'})
+    strip_fig.update_layout(title='Modified trust values from each FL round')
+    if config['SAVE_HTML_PLOTS']:
+        strip_fig.write_html(os.path.join(save_location,'{}_trust_strip_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    else:
+        strip_fig.write_image(os.path.join(save_location,'{}_trust_strip_{}.png'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
     ## histogram of trust vals
     histo_fig = px.histogram(trust_df, x="modified_trust", color="client_label", color_discrete_map={
                 "honest": '#00CC96',
-                "minor_offender": '#EF553B',
-                "major_offender": '#AB63FA'})
-    histo_fig.update_layout(title='Trust given by validation clients', barmode="group")
-    histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+                "minor_offender": '#FFA15A',
+                "major_offender": '#EF553B'})
+    histo_fig.update_layout(title='Modified trust values from each FL round', barmode="group")
+    if config['SAVE_HTML_PLOTS']:
+        histo_fig.write_html(os.path.join(save_location,'{}_trust_histo_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    else:
+        histo_fig.write_image(os.path.join(save_location,'{}_trust_histo_{}.png'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
 def gen_trust_curves(config, trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence):
     ## this function generate curves to show how trust of different clients change with every fedrounds
@@ -620,11 +623,11 @@ def gen_trust_curves(config, trust_scores, initial_validation_clients, poisoned_
     for val_client in initial_validation_clients:
         client_types[val_client] = "init_val"
     for p_client in poisoned_clients:
-        client_types[p_client] = "poisoned"
+        if p_client//10 == 2:
+            client_types[p_client] = "major_offender"
+        else:
+            client_types[p_client] = "minor_offender"
 
-    # client_types = np.zeros(config['TOTAL_CLIENTS'], dtype=int)
-    # client_types[initial_validation_clients] = -1
-    # client_types[poisoned_clients] = 1
     logging.debug(f"client_types: {client_types}")
 
     fdrs = config['FED_ROUNDS']
@@ -651,11 +654,16 @@ def gen_trust_curves(config, trust_scores, initial_validation_clients, poisoned_
                                 line_group="client_id", hover_name="client_id", color_discrete_map={
                                 "init_val": '#00CC96',
                                 "honest": '#636EFA',
-                                "poisoned": '#EF553B'})
+                                "minor_offender": '#FFA15A',
+                                "major_offender": '#EF553B'})
     score_curves_fig.update_layout(title="Trust Score Evolution")
-    score_curves_fig.write_html(os.path.join(save_location,'{}_trust_score_curves_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    if config['SAVE_HTML_PLOTS']:
+        score_curves_fig.write_html(os.path.join(save_location,'{}_trust_score_curves_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    else:
+        score_curves_fig.write_image(os.path.join(save_location,'{}_trust_score_curves_{}.png'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
-def gen_accuracy_poison_data_plot(config, poison_class_accuracy, avg_accuracy, all_poisoned_client_selected):
+
+def gen_acc_f1_poison_plot(config, poison_class_accuracy, avg_accuracy, poison_class_f1_scores, avg_f1_scores, all_poisoned_client_selected):
     if config['DATASET'] == "mnist":
         if config['CLASS_RATIO'] == 10:
             minor_class_examples = 28
@@ -707,7 +715,7 @@ def gen_accuracy_poison_data_plot(config, poison_class_accuracy, avg_accuracy, a
     
     ## plotting
     save_location = os.path.join(base_path, 'results/plots/')
-    acc_poison_fig = make_subplots(rows=3, cols=1,
+    acc_poison_fig = make_subplots(rows=2, cols=1,
                             shared_xaxes=True,
                             vertical_spacing=0.01)
 
@@ -716,16 +724,24 @@ def gen_accuracy_poison_data_plot(config, poison_class_accuracy, avg_accuracy, a
     acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=poison_class_accuracy, mode='lines+markers'),
                                 row=1, col=1)
 
+    acc_poison_fig.add_trace(go.Scatter(name='Avg F1-Measure', x=testing_round, y=avg_f1_scores, mode='lines+markers', marker_symbol='square'),
+                                row=1, col=1)
+    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class F1-Measure', x=testing_round, y=poison_class_f1_scores, mode='lines+markers', marker_symbol='square'),
+                                row=1, col=1)
+
     acc_poison_fig.add_trace(go.Bar(name='Poisoned Examples', x=testing_round, y=poisoned_examples),
                                 row=2, col=1)
 
     # acc_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
     #                             row=3, col=1), '#00B5F7'
 
-    acc_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#DC587D'],
+    acc_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#636EFA', '#EF553B', '#DC587D'],
                                 title_text="Accuracy variations with poisoned examples")
     
-    acc_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    if config['SAVE_HTML_PLOTS']:
+        acc_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+    else:
+        acc_poison_fig.write_image(os.path.join(save_location,'{}_acc_poison_plot_{}.png'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
 
 
@@ -1028,14 +1044,14 @@ def start_fl(with_config, dist_id=0):
             testing_loss, avg_acc, cls_accs, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
             avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1)
             avg_accs.append(avg_acc)
-            avg_precisions.append(avg_precision)
-            avg_recalls.append(avg_recall)
-            avg_f1_scores.append(avg_f1_score)
+            avg_precisions.append(avg_precision*100)
+            avg_recalls.append(avg_recall*100)
+            avg_f1_scores.append(avg_f1_score*100)
             cls_precisions, cls_recalls, cls_f1_scores, _supports = precision_recall_fscore_support(ground_truths, predictions, average=None, zero_division=1)
             poison_class_accs.append(cls_accs[poison_class])
-            poison_class_precisions.append(cls_precisions[poison_class])
-            poison_class_recalls.append(cls_recalls[poison_class])
-            poison_class_f1_scores.append(cls_f1_scores[poison_class])
+            poison_class_precisions.append(cls_precisions[poison_class]*100)
+            poison_class_recalls.append(cls_recalls[poison_class]*100)
+            poison_class_f1_scores.append(cls_f1_scores[poison_class]*100)
             all_class_metric_vals.append({'cls_accs': cls_accs, 'cls_precisions': cls_precisions.tolist(), 'cls_recalls': cls_recalls.tolist(), 'cls_f1_scores': cls_f1_scores.tolist()})
 
             logging.info(f"avg_acc: {avg_acc:.5f}, avg_precision: {avg_precision:.5f}, avg_recall: {avg_recall:.5f}, avg_f1_score: {avg_f1_score:.5f}")
@@ -1045,11 +1061,12 @@ def start_fl(with_config, dist_id=0):
     Path(plots_folder).mkdir(parents=True, exist_ok=True)
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     Path(dataframe_location).mkdir(parents=True, exist_ok=True)
-    gen_accuracy_poison_data_plot(comp_record.config, poison_class_accs, avg_accs, poisoned_clients_sel_in_rounds)
-    if comp_record.config['COS_DEFENCE']:
-        gen_trust_plots(comp_record.config, comp_record.client_ids, comp_record.vclient_ids, comp_record.all_trust_vals, comp_record.all_client_types)
-        gen_trust_curves(comp_record.config, trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence)
-        trust_clustering(comp_record.all_trust_vals, comp_record.all_client_types)
+    if comp_record.config['GEN_PLOTS']:
+        gen_acc_f1_poison_plot(comp_record.config, poison_class_accs, avg_accs, poison_class_f1_scores, avg_f1_scores, poisoned_clients_sel_in_rounds)
+        if comp_record.config['COS_DEFENCE']:
+            gen_trust_plots(comp_record.config, comp_record.client_ids, comp_record.vclient_ids, comp_record.all_trust_vals, comp_record.all_client_types)
+            gen_trust_curves(comp_record.config, trust_scores, initial_validation_clients, poisoned_clients, start_cosdefence)
+            trust_clustering(comp_record.all_trust_vals, comp_record.all_client_types)
 
     mean_poison_class_acc = np.mean(np.array(poison_class_accs[start_cosdefence:]))
     mean_poison_class_precision = np.mean(np.array(poison_class_precisions[start_cosdefence:]))
