@@ -12,7 +12,7 @@
 ###
 #SBATCH --mail-user=praveen.yadav@rwth-aachen.de
 ### request a GPU
-#SBATCH --gres=gpu:pascal:1
+#SBATCH --gres=gpu:volta:1
 
 ### begin of executable commands
 cd $HOME/repos/CosDefence/federated_learning

@@ -4,7 +4,7 @@
 ### name the job
 #SBATCH --job-name=mnist
 ### job run time
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 ### declare the merged STDOUT/STDERR file
 #SBATCH --output=mnist_logs.%J.txt
 ###
@@ -12,7 +12,7 @@
 ###
 #SBATCH --mail-user=praveen.yadav@rwth-aachen.de
 ### request a GPU
-#SBATCH --gres=gpu:pascal:1
+#SBATCH --gres=gpu:volta:1
 
 ### begin of executable commands
 cd $HOME/repos/CosDefence/federated_learning

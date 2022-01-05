@@ -1,0 +1,18 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
++(0):ERROR:0: Unable to locate a modulefile for 'cuda/111'
+(EE) CudNN requires CUDA, please load it via 'module load cuda'
+/home/qo964266/.local/lib/python3.8/site-packages/torchvision/datasets/mnist.py:498: UserWarning: The given NumPy array is not writeable, and PyTorch does not support non-writeable tensors. This means you can write to the underlying (supposedly non-writeable) NumPy array using the tensor. You may want to copy the array to protect its data or make it writeable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at  /pytorch/torch/csrc/utils/tensor_numpy.cpp:180.)
+  return torch.from_numpy(parsed.astype(m[2], copy=False)).view(*s)
+Major offender: 3, Minor offender: 17
+36 clients were not selected in starting rounds
+cos_defence:True, mean_poison_class_acc:86.87209, mean_avg_acc: 93.48840
+mean_poison_class_f1_score : 0.91428, mean_avg_f1_score : 0.93465
+Took 286.1399841546081 secs
