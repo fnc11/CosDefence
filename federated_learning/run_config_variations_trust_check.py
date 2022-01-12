@@ -68,6 +68,7 @@ def run_sequentially(summary_data_list, config, random_dists):
         # both together check
         config['TRUST_NORMALIZATION'] = True
         summary_data_list.append(run_and_summarize(config, random_dists))
+
     except Exception as e:
         print(e)
     
