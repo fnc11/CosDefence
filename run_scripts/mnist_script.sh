@@ -19,7 +19,7 @@ cd $HOME/repos/CosDefence/federated_learning
 ### load modules
 module switch intel gcc
 module load python/3.8.7
-module load cuda/111
+module load cuda/11.1
 module load cudnn/8.0.5
 # pip3 install --user tensorboard
 # pip3 install --user -U scikit-learn
