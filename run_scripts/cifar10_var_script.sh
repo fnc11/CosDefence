@@ -2,11 +2,11 @@
 ### ask for 10 GB memory
 #SBATCH --mem-per-cpu=6G   #M is the default and can therefore be omitted, but could also be K(ilo)|G(iga)|T(era)
 ### name the job
-#SBATCH --job-name=cifar10_var
+#SBATCH --job-name=cifar10_results_r10
 ### job run time
-#SBATCH --time=60:00:00
+#SBATCH --time=80:00:00
 ### declare the merged STDOUT/STDERR file
-#SBATCH --output=cifar10_var_logs.%J.txt
+#SBATCH --output=cifar10_results_r10_logs.%J.txt
 ###
 #SBATCH --mail-type=ALL
 ###
@@ -27,4 +27,4 @@ module load cudnn/8.0.5
 # pip3 install -U kaleido
 # pip3 install pyyaml
 
-python3 run_config_variations_other_fl_params.py cifar10_modified.yaml
+python3 run_config_results.py cifar10_modified.yaml
