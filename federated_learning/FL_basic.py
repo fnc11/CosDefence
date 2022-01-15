@@ -1091,6 +1091,7 @@ def start_fl(with_config, dist_id=0):
         result_data = {}
         result_data['config'] = comp_record.config
         result_data['mean_poison_class_acc'] = mean_poison_class_acc
+        result_data['avg_training_losses'] = avg_training_losses
 
         result_data['avg_accs'] = avg_accs
         result_data['avg_precisions'] = avg_precisions
