@@ -4,7 +4,7 @@
 ### name the job
 #SBATCH --job-name=mnist_norm
 ### job run time
-#SBATCH --time=02:00:00
+#SBATCH --time=06:00:00
 ### declare the merged STDOUT/STDERR file
 #SBATCH --output=mnist_norm_logs.%J.txt
 ###
@@ -27,4 +27,4 @@ module load cudnn/8.0.5
 # pip3 install -U kaleido
 # pip3 instal pyyaml
 
-python3 run_config_norm_on_off.py mnist_default.yaml
+python3 run_config_AB_tms_hp.py mnist_default.yaml
