@@ -48,18 +48,18 @@ def run_and_summarize(config, random_dists):
 
 
 def run_sequentially(summary_data_list, config, random_dists):
-    ## for alpha, beta hp tuning plots
-    for alpha in [0.2, 0.8]:
-        config['ALPHA'] = alpha
-        for beta in [0.2, 0.8]:
-            config['BETA'] = beta
-            try:
-                summary_data_list.append(run_and_summarize(config, random_dists))
-            except Exception as e:
-                print(e)
-    # setting initial values
-    config['ALPHA'] = 0.6
-    config['BETA'] = 0.8
+    # ## for alpha, beta hp tuning plots
+    # for alpha in [0.2, 0.8]:
+    #     config['ALPHA'] = alpha
+    #     for beta in [0.2, 0.8]:
+    #         config['BETA'] = beta
+    #         try:
+    #             summary_data_list.append(run_and_summarize(config, random_dists))
+    #         except Exception as e:
+    #             print(e)
+    # # setting initial values
+    # config['ALPHA'] = 0.6
+    # config['BETA'] = 0.8
 
 
     ## for trust modification strategy hp tuning plots
@@ -74,12 +74,12 @@ def run_sequentially(summary_data_list, config, random_dists):
 
 
     ## for honest pardoning factor hp tuning plots
-    for hpf in [0, 1, 2]:
-        config['HONEST_PARDON_FACTOR'] = tms
-        try:
-            summary_data_list.append(run_and_summarize(config, random_dists))
-        except Exception as e:
-            print(e)
+    # for hpf in [0, 1, 2]:
+    #     config['HONEST_PARDON_FACTOR'] = hpf
+    #     try:
+    #         summary_data_list.append(run_and_summarize(config, random_dists))
+    #     except Exception as e:
+    #         print(e)
 
     return summary_data_list
 

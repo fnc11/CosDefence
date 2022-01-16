@@ -27,7 +27,7 @@ COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly
 COLLAB_ALL: True # whether all client's joint vector is used for validation or top half
 CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
-FEATURE_FINDING_ALGO: auror  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
+FEATURE_FINDING_ALGO: none  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
 GRAD_COLLECTION_START: 0   # when to start collecting grads 
 GRAD_COLLECT_FOR: 20   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
 CLUSTER_SEP: 0.01   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
@@ -35,7 +35,7 @@ ALPHA: 0.6   # parameter for updating system trust vector
 BETA: 0.8    # parameter for updating system trust matrix
 GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-TRUST_MODIFY_STRATEGY: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
+TRUST_MODIFY_STRATEGY: 3  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
 HONEST_PARDON_FACTOR: 1.0 # it decides how much you want to pardon good clients getting bad trust values
 RESET_AXIS: False # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
 TRUST_SAMPLING: True # to fill matix by sampling

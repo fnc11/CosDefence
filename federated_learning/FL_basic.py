@@ -344,6 +344,9 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
                 else:
                     honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
                     trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
+        elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 3:
+            ## reverse strategy
+            trust_arr = 1-trust_arr
         else:
             pass
         
