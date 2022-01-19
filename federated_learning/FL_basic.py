@@ -143,6 +143,7 @@ def identify_poisoned(clients_selected, poisoned_clients):
 
     return posioned_client_selected
 
+
 def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients):
 
     if comp_record.config['TRUST_SAMPLING']:
@@ -225,15 +226,107 @@ def fill_initial_trust(comp_record, computing_clients):
     agg_val_vector = agg_val_vector.reshape(1, -1)
     agg_val_vector /= np.linalg.norm(agg_val_vector)
     
-    ## now we iterate over the computing clients to give them trust values\
+    ## now we iterate over the computing clients to give them trust values
+    comp_trusts = list()
     for comp_client in computing_clients:
         comp_vec = copy.deepcopy(comp_record.initial_agg_grads[comp_client]).reshape(1, -1)
         comp_vec /= np.linalg.norm(comp_vec)
-        new_trust_val = (1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/200
+        comp_trust_val = (1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2
+        comp_trusts.append(comp_trust_val)
+    
+    md_trust_vals = apply_tms_strategy(comp_record, comp_trusts)
+    for comp_client, md_trust in zip(computing_clients, md_trust_vals):
         prev_val = comp_record.csystem_tvec[comp_client]
-        comp_record.csystem_tvec[comp_client] = comp_record.config['ALPHA']*prev_val + (1-comp_record.config['ALPHA'])*new_trust_val
+        comp_record.csystem_tvec[comp_client] = comp_record.config['ALPHA']*prev_val + (1-comp_record.config['ALPHA'])*md_trust
 
     ## we don't normalize trust matrix and trust vec here, we do it only once before starting cos_defence
+
+
+
+def apply_tms_strategy(comp_record, trust_arr):
+    ##This implementation needs to be done for individual mode scenario.
+    if comp_record.config['TRUST_MODIFY_STRATEGY'] == 0:
+        ## make 2 clusters assuming one for honest (with more number of clients) and one for malicious (with low number)
+        kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
+        labels = kmeans.predict(trust_arr)
+        _vals, counts = np.unique(labels, return_counts=True)
+        logging.info(f"_labels: {_vals}, counts: {counts}")
+        trust_arr = trust_arr.flatten()
+
+
+        if comp_record.config['RESET_AXIS']:
+            kmeans_centers = kmeans.cluster_centers_
+            if counts[0] > counts[1]:
+                trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+            elif counts[0] < counts[1]:
+                trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+            else:
+                kmeans_centers = kmeans.cluster_centers_
+                if kmeans_centers[0][0] > kmeans_centers[1][0]:
+                    trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+                else:
+                    trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
+        else:
+            if counts[0] > counts[1]:
+                trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
+            elif counts[0] < counts[1]:
+                trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
+            else:
+                kmeans_centers = kmeans.cluster_centers_
+                if kmeans_centers[0][0] > kmeans_centers[1][0]:
+                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
+                else:
+                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
+
+        
+        # kmeans_centers = kmeans.cluster_centers_
+        # center_dist = abs(kmeans_centers[0][0] - kmeans_centers[1][0])
+        # if counts[0] > counts[1]:
+        #     ## center 0 is majority similarty mean value
+        #     majority_mean = kmeans_centers[0][0]
+        #     minortiy_mean = kmeans_centers[1][0]
+        # else:
+        #     majority_mean = kmeans_centers[1][0]
+        #     minortiy_mean = kmeans_centers[0][0]
+        
+        # lower_trust_bound = max(0, majority_mean - comp_record.config['HONEST_PARDON_FACTOR']*center_dist)
+        # upper_trust_bound = min(0.99, majority_mean + comp_record.config['HONEST_PARDON_FACTOR']*center_dist)
+        # trust_arr = np.where(((trust_arr >= lower_trust_bound) & (trust_arr <= upper_trust_bound)), trust_arr, 0.3)
+        # logging.info("Trust Cutting using Clustering")
+        # logging.info("majority_mean, minortiy_mean, center_dist, lower_trust_bound, upper_trust_bound")
+        # logging.info(f"{majority_mean}, {minortiy_mean}, {center_dist}, {lower_trust_bound}, {upper_trust_bound}")
+
+        logging.info(f"modified arr: {trust_arr}")
+    elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 1:
+        ## AFA method
+        mean_val = np.mean(trust_arr)
+        median_val = np.median(trust_arr)
+        std_dev = np.std(trust_arr)
+        if comp_record.config['RESET_AXIS']:
+            if mean_val >= median_val:
+                honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
+                trust_arr = np.where(trust_arr <= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
+            else:
+                honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
+                trust_arr = np.where(trust_arr >= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
+        else:
+            if mean_val >= median_val:
+                honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
+                trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.0)
+            else:
+                honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
+                trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
+    elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 3:
+        ## reverse strategy
+        trust_arr = 1-trust_arr
+    else:
+        pass
+
+    ## we divide all trust values by 100 before setting these values in the matrix
+    if comp_record.config['TRUST_NORMALIZATION']:
+        trust_arr /= 100
+    
+    return trust_arr
     
 
 def cos_defence(comp_record, computing_clients, poisoned_clients):
@@ -272,88 +365,8 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
 
         trust_arr = np.array(comp_trusts).reshape(-1, 1)
 
-        ##This implementation needs to be done for individual mode scenario.
-        if comp_record.config['TRUST_MODIFY_STRATEGY'] == 0:
-            ## make 2 clusters assuming one for honest (with more number of clients) and one for malicious (with low number)
-            kmeans = KMeans(n_clusters=2, random_state=0).fit(trust_arr)
-            labels = kmeans.predict(trust_arr)
-            _vals, counts = np.unique(labels, return_counts=True)
-            logging.info(f"_labels: {_vals}, counts: {counts}")
-            trust_arr = trust_arr.flatten()
+        trust_arr = apply_tms_strategy(comp_record, trust_arr)
 
-
-            if comp_record.config['RESET_AXIS']:
-                kmeans_centers = kmeans.cluster_centers_
-                if counts[0] > counts[1]:
-                    trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
-                elif counts[0] < counts[1]:
-                    trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
-                else:
-                    kmeans_centers = kmeans.cluster_centers_
-                    if kmeans_centers[0][0] > kmeans_centers[1][0]:
-                        trust_arr = np.where(labels == _vals[0], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
-                    else:
-                        trust_arr = np.where(labels == _vals[1], 1.0 - abs(trust_arr-kmeans_centers[0][0]), abs(trust_arr-kmeans_centers[1][0]))
-            else:
-                if counts[0] > counts[1]:
-                    trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
-                elif counts[0] < counts[1]:
-                    trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
-                else:
-                    kmeans_centers = kmeans.cluster_centers_
-                    if kmeans_centers[0][0] > kmeans_centers[1][0]:
-                        trust_arr = np.where(labels == _vals[0], trust_arr, 0.0)
-                    else:
-                        trust_arr = np.where(labels == _vals[1], trust_arr, 0.0)
-
-            
-            # kmeans_centers = kmeans.cluster_centers_
-            # center_dist = abs(kmeans_centers[0][0] - kmeans_centers[1][0])
-            # if counts[0] > counts[1]:
-            #     ## center 0 is majority similarty mean value
-            #     majority_mean = kmeans_centers[0][0]
-            #     minortiy_mean = kmeans_centers[1][0]
-            # else:
-            #     majority_mean = kmeans_centers[1][0]
-            #     minortiy_mean = kmeans_centers[0][0]
-            
-            # lower_trust_bound = max(0, majority_mean - comp_record.config['HONEST_PARDON_FACTOR']*center_dist)
-            # upper_trust_bound = min(0.99, majority_mean + comp_record.config['HONEST_PARDON_FACTOR']*center_dist)
-            # trust_arr = np.where(((trust_arr >= lower_trust_bound) & (trust_arr <= upper_trust_bound)), trust_arr, 0.3)
-            # logging.info("Trust Cutting using Clustering")
-            # logging.info("majority_mean, minortiy_mean, center_dist, lower_trust_bound, upper_trust_bound")
-            # logging.info(f"{majority_mean}, {minortiy_mean}, {center_dist}, {lower_trust_bound}, {upper_trust_bound}")
-
-            logging.info(f"modified arr: {trust_arr}")
-        elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 1:
-            ## AFA method
-            mean_val = np.mean(trust_arr)
-            median_val = np.median(trust_arr)
-            std_dev = np.std(trust_arr)
-            if comp_record.config['RESET_AXIS']:
-                if mean_val >= median_val:
-                    honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr <= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
-                else:
-                    honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr >= honest_trust_threshold, 1.0 - abs(median_val-trust_arr), abs(median_val-trust_arr)/10.0)
-            else:
-                if mean_val >= median_val:
-                    honest_trust_threshold = median_val + comp_record.config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr <= honest_trust_threshold, trust_arr, 0.0)
-                else:
-                    honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
-                    trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
-        elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 3:
-            ## reverse strategy
-            trust_arr = 1-trust_arr
-        else:
-            pass
-        
-        ## we divide all trust values by 100 before setting these values in the matrix
-        if comp_record.config['TRUST_NORMALIZATION']:
-            trust_arr /= 100
-    
         comp_trusts = list(trust_arr)
         for val_client in validating_clients:
             for comp_client, new_trust_val in zip(computing_clients, comp_trusts):
@@ -377,25 +390,29 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
             val_vec = copy.deepcopy(comp_record.agg_grads[val_client]).reshape(1, -1)
             val_vec /= np.linalg.norm(val_vec)
             for comp_client in computing_clients:
-                if comp_client != val_client:
-                    comp_vec = copy.deepcopy(comp_record.agg_grads[comp_client]).reshape(1, -1)
-                    comp_vec /= np.linalg.norm(comp_vec)
-                    new_trust_val = (1+cosine_similarity(comp_vec, val_vec)[0][0])/(2*100)
+                # if comp_client != val_client:
+                comp_vec = copy.deepcopy(comp_record.agg_grads[comp_client]).reshape(1, -1)
+                comp_vec /= np.linalg.norm(comp_vec)
+                new_trust_val = (1+cosine_similarity(comp_vec, val_vec)[0][0])/2
+                
+                ## we divide all trust values by 100 before setting these values in the matrix
+                if comp_record.config['TRUST_NORMALIZATION']:
+                    new_trust_val /= 100
 
-                    prev_val = comp_record.csystem_tmat[val_client, comp_client]
-                    comp_record.csystem_tmat[val_client, comp_client] = prev_val*comp_record.config['BETA'] + (1-comp_record.config['BETA'])*new_trust_val
-                    
-                    ## for analytics purposes
-                    comp_record.all_trust_vals.append(new_trust_val)
-                    comp_record.client_ids.append(comp_client)
-                    comp_record.vclient_ids.append(val_client)
-                    if comp_client in poisoned_clients:
-                        client_type = "minor_offender"
-                        if comp_client//10 == 2:
-                            client_type = "major_offender"
-                    else:
-                        client_type = "honest"
-                    comp_record.all_client_types.append(client_type) 
+                prev_val = comp_record.csystem_tmat[val_client, comp_client]
+                comp_record.csystem_tmat[val_client, comp_client] = prev_val*comp_record.config['BETA'] + (1-comp_record.config['BETA'])*new_trust_val
+                
+                ## for analytics purposes
+                comp_record.all_trust_vals.append(new_trust_val)
+                comp_record.client_ids.append(comp_client)
+                comp_record.vclient_ids.append(val_client)
+                if comp_client in poisoned_clients:
+                    client_type = "minor_offender"
+                    if comp_client//10 == 2:
+                        client_type = "major_offender"
+                else:
+                    client_type = "honest"
+                comp_record.all_client_types.append(client_type) 
             
     ## we need to normalize the new_system_trust_mat row wise
     sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
