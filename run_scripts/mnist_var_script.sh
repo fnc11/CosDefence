@@ -4,9 +4,9 @@
 ### name the job
 #SBATCH --job-name=mnist_ffa_none
 ### job run time
-#SBATCH --time=02:00:00
+#SBATCH --time=06:00:00
 ### declare the merged STDOUT/STDERR file
-#SBATCH --output=mnist_ffa_none_logs.%J.txt
+#SBATCH --output=mnist_ffa_logs.%J.txt
 ###
 #SBATCH --mail-type=ALL
 ###

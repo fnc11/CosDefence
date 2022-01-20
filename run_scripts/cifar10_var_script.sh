@@ -4,7 +4,7 @@
 ### name the job
 #SBATCH --job-name=cifar10_ffa
 ### job run time
-#SBATCH --time=18:00:00
+#SBATCH --time=15:00:00
 ### declare the merged STDOUT/STDERR file
 #SBATCH --output=cifar10_ffa_logs.%J.txt
 ###

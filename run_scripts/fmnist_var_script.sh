@@ -4,7 +4,7 @@
 ### name the job
 #SBATCH --job-name=fmnist_ffa
 ### job run time
-#SBATCH --time=08:00:00
+#SBATCH --time=16:00:00
 ### declare the merged STDOUT/STDERR file
 #SBATCH --output=fmnist_ffa_logs.%J.txt
 ###
