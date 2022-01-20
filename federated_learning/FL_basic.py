@@ -232,7 +232,6 @@ def apply_tms_strategy(comp_record, comp_trusts):
 
 
 def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients):
-
     if comp_record.config['TRUST_SAMPLING']:
         not_selected_before_starting = 0
         ## step 1, find mean, std from the non_zero values and also note down these clients
@@ -290,10 +289,10 @@ def fill_initial_trust(comp_record, computing_clients):
     ## added values in the trust matrix selected in the round
     num_computing_clients = len(computing_clients)
     for i in range(num_computing_clients):
-            comp1_vec = copy.deepcopy(comp_record.initial_agg_grads[computing_clients[i]]).reshape(1, -1)
+            comp1_vec = copy.deepcopy(comp_record.all_agg_grads[computing_clients[i]]).reshape(1, -1)
             comp1_vec /= np.linalg.norm(comp1_vec)
             for j in range(i+1, num_computing_clients):
-                comp2_vec = copy.deepcopy(comp_record.initial_agg_grads[computing_clients[j]]).reshape(1, -1)
+                comp2_vec = copy.deepcopy(comp_record.all_agg_grads[computing_clients[j]]).reshape(1, -1)
                 comp2_vec /= np.linalg.norm(comp2_vec)
                 new_trust_val = (1+cosine_similarity(comp1_vec, comp2_vec)[0][0])/200
 
@@ -305,10 +304,10 @@ def fill_initial_trust(comp_record, computing_clients):
     
 
     ## we are also updating our trust vec using joint grad vec from that round
-    agg_val_vector = torch.zeros(comp_record.initial_agg_grads[computing_clients[0]].size())
+    agg_val_vector = torch.zeros(comp_record.all_agg_grads[computing_clients[0]].size())
     ## join grad vector from all validation client and use that for cosine similarity for all computing clients
     for comp_client in computing_clients:
-        agg_val_vector += copy.deepcopy(comp_record.initial_agg_grads[comp_client])
+        agg_val_vector += copy.deepcopy(comp_record.all_agg_grads[comp_client])
     
     agg_val_vector = agg_val_vector.reshape(1, -1)
     agg_val_vector /= np.linalg.norm(agg_val_vector)
@@ -316,7 +315,7 @@ def fill_initial_trust(comp_record, computing_clients):
     ## now we iterate over the computing clients to give them trust values
     comp_trusts = list()
     for comp_client in computing_clients:
-        comp_vec = copy.deepcopy(comp_record.initial_agg_grads[comp_client]).reshape(1, -1)
+        comp_vec = copy.deepcopy(comp_record.all_agg_grads[comp_client]).reshape(1, -1)
         comp_vec /= np.linalg.norm(comp_vec)
         comp_trust_val = (1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2
         comp_trusts.append(comp_trust_val)
@@ -348,10 +347,10 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
     ## update trust matrix
     # Step 4, 5 Computing trust and updating the system trust matrix,
     if comp_record.config['COLLAB_MODE']:
-        agg_val_vector = torch.zeros(comp_record.agg_grads[validating_clients[0]].size())
+        agg_val_vector = torch.zeros(comp_record.ind_agg_grads[validating_clients[0]].size())
         ## join grad vector from all validation client and use that for cosine similarity for all computing clients
         for val_client in validating_clients:
-            agg_val_vector += copy.deepcopy(comp_record.agg_grads[val_client])
+            agg_val_vector += copy.deepcopy(comp_record.ind_agg_grads[val_client])
         
         agg_val_vector = agg_val_vector.reshape(1, -1)
         agg_val_vector /= np.linalg.norm(agg_val_vector)
@@ -359,7 +358,7 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
         ## now we iterate over the computing clients to give them trust values
         comp_trusts = list()
         for comp_client in computing_clients:
-            comp_vec = copy.deepcopy(comp_record.agg_grads[comp_client]).reshape(1, -1)
+            comp_vec = copy.deepcopy(comp_record.ind_agg_grads[comp_client]).reshape(1, -1)
             comp_vec /= np.linalg.norm(comp_vec)
             comp_trusts.append((1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2)
 
@@ -383,11 +382,11 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
                     comp_record.all_client_types.append(client_type)
     else:
         for val_client in validating_clients:
-            val_vec = copy.deepcopy(comp_record.agg_grads[val_client]).reshape(1, -1)
+            val_vec = copy.deepcopy(comp_record.ind_agg_grads[val_client]).reshape(1, -1)
             val_vec /= np.linalg.norm(val_vec)
             for comp_client in computing_clients:
                 # if comp_client != val_client:
-                comp_vec = copy.deepcopy(comp_record.agg_grads[comp_client]).reshape(1, -1)
+                comp_vec = copy.deepcopy(comp_record.ind_agg_grads[comp_client]).reshape(1, -1)
                 comp_vec /= np.linalg.norm(comp_vec)
                 new_trust_val = (1+cosine_similarity(comp_vec, val_vec)[0][0])/2
                 
@@ -466,25 +465,17 @@ def train_on_client(comp_record, idx, model, data_loader, optimizer, loss_fn, de
         logging.debug('Client: {}\t Epoch: {} \tTraining Loss: {:.6f}'.format(idx, epoch, epoch_train_loss))
 
     
-    
-    ## for first 10 iterations we save all gradients layerwise to find important feature using gradients
-    ## we save initial grad vector of clients to find similarity, to initialize trust matrix
+    # collect only indicative features
     if comp_record.collect_features:
-        ## save here what you want to access later for similarity calculation, for e.g. last layer params of the model
-        ## or calculated by clustering method to detect important features
         epoch_grad_vecs = []
         for key in epoch_grad_bank.keys():
             layer_grads = (epoch_grad_bank[key]/comp_record.config['LOCAL_EPOCHS']).numpy()
-            # logging.info("Printing shapes")
-            # logging.info(layer_grads.size())
-            # logging.info(indicative_grads[key].shape)
             epoch_grad_vecs.append(layer_grads[comp_record.indicative_grads[key].astype(bool)].flatten().reshape(1, -1))
         
         # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector
-        # grad_vec = 
-        comp_record.agg_grads[idx] += np.concatenate(epoch_grad_vecs, axis=1)
+        comp_record.ind_agg_grads[idx] += np.concatenate(epoch_grad_vecs, axis=1)
     else:
-        ## we save initial grad vector of clients to find similarity, to initialize trust matrix
+        # all agg grads saves all gradients, while grad bank saves only in case ffa algo is there. 
         epoch_grad_vecs = []
         for key in epoch_grad_bank.keys():
             layer_grads = (epoch_grad_bank[key]/comp_record.config['LOCAL_EPOCHS']).detach().clone().cpu().numpy()
@@ -492,12 +483,12 @@ def train_on_client(comp_record, idx, model, data_loader, optimizer, loss_fn, de
             # logging.info(layer_grads.size)
             epoch_grad_vecs.append(layer_grads.reshape(1, -1))
 
-            ## Needed for auror, auror_plus algo
+            ## Needed for ffa algo
             if comp_record.save_for_ft_finding:
                 comp_record.grad_bank[key].append(epoch_grad_bank[key]/ comp_record.config['LOCAL_EPOCHS'])
         
         # we just add new params to old ones, during similarity calculation we anyway normalize the whole vector 
-        comp_record.initial_agg_grads[idx] += np.concatenate(epoch_grad_vecs, axis=1)
+        comp_record.all_agg_grads[idx] += np.concatenate(epoch_grad_vecs, axis=1)
 
     return epoch_training_losses
 
@@ -594,7 +585,7 @@ def gen_trust_plots(config, client_ids, validation_client_ids, trust_vals, label
     save_location = os.path.join(base_path, 'results/plots/')
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TS{config['TRUST_SAMPLING']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}_LYR{config['CONSIDER_LAYERS']}_GCF{config['GRAD_COLLECT_FOR']}_G{config['GAMMA']}_TIN{config['TRUST_INC']}"
     if config['COLLAB_MODE']:
         ## since in COLLAB_MODE multiple validation clients give trust value we don't have 1:1 ref for
         ## computing client who gave them trust value
@@ -661,7 +652,7 @@ def gen_trust_curves(config, trust_scores, initial_validation_clients, poisoned_
     global base_path
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TS{config['TRUST_SAMPLING']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}_LYR{config['CONSIDER_LAYERS']}_GCF{config['GRAD_COLLECT_FOR']}_G{config['GAMMA']}_TIN{config['TRUST_INC']}"
     trust_scores_df.to_pickle(f'{dataframe_location}trust_scores_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
     
     save_location = os.path.join(base_path, 'results/plots/')
@@ -718,7 +709,7 @@ def gen_acc_f1_poison_plot(config, poison_class_accuracy, avg_accuracy, poison_c
     ## saving this plot data in order to later compare two plots if we need to
     global base_path
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TS{config['TRUST_SAMPLING']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}_LYR{config['CONSIDER_LAYERS']}_GCF{config['GRAD_COLLECT_FOR']}_G{config['GAMMA']}_TIN{config['TRUST_INC']}"
 
     testing_round = list(range(config['TEST_EVERY']-1, config['FED_ROUNDS'], config['TEST_EVERY']))
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
@@ -785,7 +776,7 @@ def start_fl(with_config, dist_id=0):
     ## inital system trust need to be set using three type of distributions
     comp_record.csystem_tmat = set_initial_trust_mat("ones")  #
 
-    comp_record.agg_grads = list()
+    comp_record.ind_agg_grads = list()
     comp_record.grad_bank = dict()
     comp_record.indicative_grads = dict()
     comp_record.save_for_ft_finding = False
@@ -819,15 +810,32 @@ def start_fl(with_config, dist_id=0):
 
     if comp_record.config['RANDOM_DATA']:
         rng3 = default_rng()
+        torch_rng = torch.Generator()
     else:
         seed = 42
         rng3 = default_rng(seed)
+        torch_rng = torch.Generator()
+        torch_rng = torch_rng.manual_seed(2147483647)
 
     # If this flag is set then client data is created again and saved with in given dist_id
     if comp_record.config['CREATE_DATASET']:
-        create_client_data(rng3, comp_record.config['DATASET'], comp_record.config['CLASS_RATIO'], dist_id)
+        create_client_data(rng3, torch_rng, comp_record.config['DATASET'], comp_record.config['CLASS_RATIO'], dist_id)
 
-    # if comp_record.config['COS_DEFENCE']:
+    # if comp_record.config['COS_DEFENCE'] and comp_record.config['FEATURE_FINDING_ALGO'] != 'none' :
+    #     if comp_record.config['GRAD_COLLECT_FOR'] == -1:
+    #         ## -1 here tells that cos_defence should be started based on the dataset
+    #         if comp_record.config['DATASET'] == 'mnist':
+    #             start_cosdefence = comp_record.config['GRAD_COLLECTION_START'] + int(1/comp_record.config['CLIENT_FRAC'])
+    #         elif comp_record.config['DATASET'] == 'fmnist':
+    #             start_cosdefence = comp_record.config['GRAD_COLLECTION_START'] + int(1/comp_record.config['CLIENT_FRAC'])
+    #         else:
+    #             start_cosdefence = comp_record.config['GRAD_COLLECTION_START'] + 2 * int(1/comp_record.config['CLIENT_FRAC'])
+    #     else:
+    #         start_cosdefence = comp_record.config['GRAD_COLLECTION_START'] + comp_record.config['GRAD_COLLECT_FOR']
+    # else:
+    #     start_cosdefence = 0
+
+
     if comp_record.config['GRAD_COLLECT_FOR'] == -1:
         ## -1 here tells that cos_defence should be started based on the dataset
         if comp_record.config['DATASET'] == 'mnist':
@@ -853,7 +861,7 @@ def start_fl(with_config, dist_id=0):
         comp_record.grad_bank[layer_name + '.weight'] = list()
         comp_record.grad_bank[layer_name + '.bias'] = list()
     
-    comp_record.initial_agg_grads = list()
+    comp_record.all_agg_grads = list()
     init_grad_vec_size = 0
     ## need to make based on the layer selected
     for layer_name in comp_record.sel_layer_names:
@@ -861,7 +869,7 @@ def start_fl(with_config, dist_id=0):
         init_grad_vec_size += torch.numel(getattr(server_model, layer_name).bias)
     # print(f"Initial grad vec size: { init_grad_vec_size}")
     for client in range(comp_record.config['TOTAL_CLIENTS']):
-        comp_record.initial_agg_grads.append(torch.zeros((1, init_grad_vec_size)))
+        comp_record.all_agg_grads.append(torch.zeros((1, init_grad_vec_size)))
 
 
 
@@ -922,8 +930,6 @@ def start_fl(with_config, dist_id=0):
     client_training_losses = [[] for i in range(comp_record.config['TOTAL_CLIENTS'])]
     avg_training_losses = [] # this saves the avg loss of the clients selected in one federated round
 
-    ## boolean flag used to check if trust mat and vec was initialized using similarity between grads of clients
-    trust_initialized = False
     selected_hq = np.ones((comp_record.config['TOTAL_CLIENTS']), dtype=float)
 
     ###
@@ -984,14 +990,15 @@ def start_fl(with_config, dist_id=0):
         # if turned on we change the client_weights from normal to computed by CosDefence
         logging.info(f"CosDefence is On: {comp_record.config['COS_DEFENCE']}")
         if comp_record.config['COS_DEFENCE']:
-            if i == comp_record.config['GRAD_COLLECTION_START']:
-                comp_record.save_for_ft_finding = True
+            if comp_record.config['FEATURE_FINDING_ALGO'] != "none":
+                if i == comp_record.config['GRAD_COLLECTION_START']:
+                    comp_record.save_for_ft_finding = True
             
-            if i < start_cosdefence:
-                ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
-                fill_initial_trust(comp_record, clients_selected)
-                ## to make sure when client are selected this value sums upto 1
-                if i == start_cosdefence - 1:
+                if i < comp_record.config['GRAD_COLLECT_FOR']:
+                    ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
+                    fill_initial_trust(comp_record, clients_selected)
+
+                if i == comp_record.config['GRAD_COLLECT_FOR'] - 1:
                     comp_record.indicative_grads, counts = find_indicative_grads(comp_record.grad_bank, comp_record.config['FEATURE_FINDING_ALGO'], comp_record.config['CLUSTER_SEP'])
                     comp_record.save_for_ft_finding = False
                     comp_record.collect_features = True
@@ -1013,15 +1020,15 @@ def start_fl(with_config, dist_id=0):
                     comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
                     ## initializing aggregate grads so that now these grads can ve collected as flat vector
                     for k in range(comp_record.config['TOTAL_CLIENTS']):
-                        comp_record.agg_grads.append(torch.zeros((1, counts)))
+                        comp_record.ind_agg_grads.append(torch.zeros((1, counts)))
 
                     logging.info(f"Found {counts} indicative grads")
-            else:
-                ## before starting cos_defence, fill up matrix and vec using mean, std method
-                if not trust_initialized:
+
+                    ## before starting cos_defence, fill up matrix and vec using mean, std method
                     fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients)
-                    trust_initialized = True
-                
+                else:
+                    cos_defence(comp_record, clients_selected, poisoned_clients_selected)
+            else:
                 cos_defence(comp_record, clients_selected, poisoned_clients_selected)
 
 

@@ -50,7 +50,7 @@ def get_dataset(dataset_name):
     return trainset
 
 
-def create_client_data(rng, dataset_name='cifar10', class_ratio=10, dist_id=0):
+def create_client_data(rng, torch_rng, dataset_name='cifar10', class_ratio=10, dist_id=0):
     class_ids = defaultdict(list)
     trainset = get_dataset(dataset_name)
     for i in range(len(trainset)):
@@ -102,11 +102,13 @@ def create_client_data(rng, dataset_name='cifar10', class_ratio=10, dist_id=0):
     # print(boundary)
     for i in range(10):
         major_loader = torch.utils.data.DataLoader(trainset, batch_size=major_share,
-                                                   sampler=torch.utils.data.SubsetRandomSampler(class_ids[i][:boundary]))
+                                                   sampler=torch.utils.data.SubsetRandomSampler(class_ids[i][:boundary]), 
+                                                   generator=torch_rng)
         major_iter = iter(major_loader)
 
         minor_loader = torch.utils.data.DataLoader(trainset, batch_size=minor_share,
-                                                   sampler=torch.utils.data.SubsetRandomSampler(class_ids[i][boundary:]))
+                                                   sampler=torch.utils.data.SubsetRandomSampler(class_ids[i][boundary:]),
+                                                   generator=torch_rng)
         minor_iter = iter(minor_loader)
 
         for j in range(100):
@@ -234,11 +236,14 @@ def main():
         config = yaml.safe_load(cfg_file)
         if config['RANDOM_DATA']:
             rng = default_rng()
+            torch_rng = torch.Generator()
         else:
             seed = 42
             rng = default_rng(seed)
+            torch_rng = torch.Generator()
+            torch_rng = torch_rng.manual_seed(2147483647)
         for dist_id in range(dists_to_create):
-            create_client_data(rng, config['DATASET'], config['CLASS_RATIO'], dist_id=dist_id)
+            create_client_data(rng, torch_rng, config['DATASET'], config['CLASS_RATIO'], dist_id=dist_id)
 
 if __name__ == '__main__':
     main()
