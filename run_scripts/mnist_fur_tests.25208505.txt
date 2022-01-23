@@ -1,0 +1,69 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(OK) Loading cudnn 8.0.5
+Major offender: 0, Minor offender: 0
+Major offender: 0, Minor offender: 0
+Major offender: 0, Minor offender: 0
+Major offender: 0, Minor offender: 0
+Major offender: 0, Minor offender: 0
+Selected config
+{'DATASET': 'mnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.0, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'nnet', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 30, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 20, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': False, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 93.26937984496124 +- 0.6090206856430498
+mean_mean_avg_accs: 95.13239999999999 +- 0.13231114843428513
+mean_mean_poison_class_f1_scores: 94.98302622909357 +- 0.3415514664522171
+mean_mean_avg_f1_scores: 95.12647099811002 +- 0.1327226145898007
+Major offender: 0, Minor offender: 0
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 0
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 0
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 0
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 0
+0 clients were not selected in starting rounds
+Selected config
+{'DATASET': 'mnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.0, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'nnet', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 30, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 20, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': False, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 93.52906976744187 +- 0.8006808217126979
+mean_mean_avg_accs: 95.10660000000001 +- 0.18044677885736546
+mean_mean_poison_class_f1_scores: 94.94028809108025 +- 0.3825133288114572
+mean_mean_avg_f1_scores: 95.10031983538278 +- 0.18132463767533052
+Major offender: 2, Minor offender: 18
+Major offender: 3, Minor offender: 17
+Major offender: 3, Minor offender: 17
+Major offender: 1, Minor offender: 19
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'mnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'nnet', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 30, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 20, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': False, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 81.83720930232558 +- 1.7558032581771221
+mean_mean_avg_accs: 94.00399999999999 +- 0.15993123522313651
+mean_mean_poison_class_f1_scores: 88.96792667917333 +- 1.2690174569952792
+mean_mean_avg_f1_scores: 93.9261979568654 +- 0.19206414697545882
+Major offender: 2, Minor offender: 18
+0 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+0 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+0 clients were not selected in starting rounds
+Major offender: 1, Minor offender: 19
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 20
+0 clients were not selected in starting rounds
+Selected config
+{'DATASET': 'mnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'nnet', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 30, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 20, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': False, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 90.91279069767441 +- 0.36573007542671815
+mean_mean_avg_accs: 94.8632 +- 0.1212953420375258
+mean_mean_poison_class_f1_scores: 93.84594320744267 +- 0.23310141944772844
+mean_mean_avg_f1_scores: 94.85286014404419 +- 0.1214971776394059

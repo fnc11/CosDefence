@@ -9,3 +9,71 @@
  Built with GCC compilers.
 (OK) Loading cuda 11.1.1
 (OK) Loading cudnn 8.0.5
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'none', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 0, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 36.38564705882352 +- 1.1419541073926753
+mean_mean_avg_accs: 60.10162352941177 +- 1.5906149626191641
+mean_mean_poison_class_f1_scores: 43.3898088184068 +- 1.3346286576266269
+mean_mean_avg_f1_scores: 59.695313965820866 +- 1.5891188427091334
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'none', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 37.67 +- 2.0963518815009725
+mean_mean_avg_accs: 59.820047058823526 +- 1.3097104978188454
+mean_mean_poison_class_f1_scores: 44.52435538988078 +- 1.5488069228609007
+mean_mean_avg_f1_scores: 59.43829527654741 +- 1.301965886269127
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'none', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 2, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 38.78388235294118 +- 0.5905046343453993
+mean_mean_avg_accs: 60.697176470588225 +- 1.1998771096244383
+mean_mean_poison_class_f1_scores: 45.38750741631459 +- 0.3233141443992593
+mean_mean_avg_f1_scores: 60.31969032026842 +- 1.173024286875035
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'none', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 3, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 36.63482352941177 +- 1.319056567541247
+mean_mean_avg_accs: 61.0021294117647 +- 1.3997250068035791
+mean_mean_poison_class_f1_scores: 44.16519209788038 +- 1.278461906011734
+mean_mean_avg_f1_scores: 60.555939975058166 +- 1.3939157240739428

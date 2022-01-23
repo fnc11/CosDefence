@@ -1,0 +1,63 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(OK) Loading cudnn 8.0.5
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 3, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 37.07917647058823 +- 2.5273008044950633
+mean_mean_avg_accs: 60.87025882352941 +- 0.8338695421270573
+mean_mean_poison_class_f1_scores: 44.606035633624906 +- 1.9892021947900085
+mean_mean_avg_f1_scores: 60.43640907933309 +- 0.8861832542122016
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 5, 'TRUST_MODIFY_STRATEGY': 3, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 35.97517647058823 +- 3.2422234115679043
+mean_mean_avg_accs: 59.59341176470589 +- 1.9845377427993534
+mean_mean_poison_class_f1_scores: 43.198790665325205 +- 2.9069111543999724
+mean_mean_avg_f1_scores: 59.12246888214848 +- 2.0060806461870286
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 10, 'TRUST_MODIFY_STRATEGY': 3, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 36.399764705882355 +- 1.7841705195710877
+mean_mean_avg_accs: 59.974105882352944 +- 1.499988638203797
+mean_mean_poison_class_f1_scores: 43.6592582210312 +- 1.755343391264818
+mean_mean_avg_f1_scores: 59.51831762492933 +- 1.5153514461813995
+Took 46336.266207813984 secs
