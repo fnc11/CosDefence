@@ -2,11 +2,11 @@
 ### ask for 4 GB memory
 #SBATCH --mem-per-cpu=4G   #M is the default and can therefore be omitted, but could also be K(ilo)|G(iga)|T(era)
 ### name the job
-#SBATCH --job-name=mnist_ffa_tms
+#SBATCH --job-name=mnist_trust_ab
 ### job run time
-#SBATCH --time=01:00:00
+#SBATCH --time=20:00:00
 ### declare the merged STDOUT/STDERR file
-#SBATCH --output=mnist_ffa_tms_logs.%J.txt
+#SBATCH --output=mnist_trust_ab_logs.%J.txt
 ###
 #SBATCH --mail-type=ALL
 ###
@@ -27,4 +27,4 @@ module load cudnn/8.0.5
 # pip3 install -U kaleido
 # pip3 instal pyyaml
 
-python3 run_config_variations.py mnist_modified.yaml
+python3 run_config_variations_trust_ab.py mnist_default.yaml

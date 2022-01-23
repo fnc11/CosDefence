@@ -29,6 +29,43 @@ import torch.optim as optim
 ## project path
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
+## add logical trust boost to initial validating clients and self trust to the clients itself
+def boost_trust(comp_record, initial_validation_clients):
+    # validation client's trust distribution
+    additional_trust_vector = np.zeros(comp_record.config['TOTAL_CLIENTS'])
+    # replaces the zeros with 1 amount of trust value given to validation client
+    np.put(additional_trust_vector, initial_validation_clients, max(0.01, comp_record.config["TRUST_INC"]*np.max(comp_record.csystem_tvec)))
+
+    # we add this additional trust vector to the initial system trust so that system has more trust on validation clients
+    # regardless of the trust distribution we use during initialization 
+    logging.info("Before trust addition")
+    logging.info(comp_record.csystem_tvec.shape)
+    logging.info(additional_trust_vector.shape)
+
+    comp_record.csystem_tvec += additional_trust_vector
+    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
+
+    logging.info("After Validation client trust addition")
+    logging.info(comp_record.csystem_tvec)
+
+    ## also we give trust boost between intial_validation_clients, since we starting with same initial trust 0.01
+    ## between all clients, we just add this extra trust
+    num_validating_clients = len(initial_validation_clients)
+    for i in range(num_validating_clients):
+        for j in range(i+1, num_validating_clients):
+            comp_record.csystem_tmat[initial_validation_clients[i]][initial_validation_clients[j]] +=  0.01 * comp_record.config["TRUST_INC"]
+            comp_record.csystem_tmat[initial_validation_clients[j]][initial_validation_clients[i]] += 0.01 * comp_record.config["TRUST_INC"]
+    
+    # client i would have 100% trust on itself, changed trust val according to config
+    for i in range(comp_record.config['TOTAL_CLIENTS']):
+        comp_record.csystem_tmat[i][i] +=  0.01 * comp_record.config["TRUST_INC"]
+
+    ## renormalizing the trust matrix
+    sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
+    comp_record.csystem_tmat = comp_record.csystem_tmat / sum_of_rows[:, np.newaxis]
+
+
 def set_initial_trust_vec(dist_type="ones"):
     if dist_type == "ones":
         trust_vec = np.ones((100), dtype=float)
@@ -85,24 +122,6 @@ def init_validation_clients(comp_record, poisoned_clients, rng):
     # selecting validation clients
     validation_clients_available = [client for client in range(comp_record.config['TOTAL_CLIENTS']) if client not in poisoned_clients]
     validation_clients = rng.choice(validation_clients_available, size=int(comp_record.config['GAMMA'] * comp_record.config['TOTAL_CLIENTS']), replace=False)
-    
-    # validation client's trust distribution
-    additional_trust_vector = np.zeros(comp_record.config['TOTAL_CLIENTS'])
-    # replaces the zeros with 1 amount of trust value given to validation client
-    np.put(additional_trust_vector, validation_clients, max(0.01, comp_record.config["TRUST_INC"]*np.max(comp_record.csystem_tvec)))
-
-    # we add this additional trust vector to the initial system trust so that system has more trust on validation clients
-    # regardless of the trust distribution we use during initialization 
-    logging.info("Before trust addition")
-    logging.info(comp_record.csystem_tvec.shape)
-    logging.info(additional_trust_vector.shape)
-
-    comp_record.csystem_tvec += additional_trust_vector
-    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
-
-    logging.info("After Validation client trust addition")
-    logging.info(comp_record.csystem_tvec)
-
     return validation_clients
 
 def eigen_trust(comp_record, epsilon=0.00001):
@@ -231,55 +250,30 @@ def apply_tms_strategy(comp_record, comp_trusts):
     return list(trust_arr)
 
 
-def fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients):
-    if comp_record.config['TRUST_SAMPLING']:
-        not_selected_before_starting = 0
-        ## step 1, find mean, std from the non_zero values and also note down these clients
-        for i in range(comp_record.config['TOTAL_CLIENTS']):
-            zero_interaction_clients = list()
-            interaction_trust_vals = list()
-            for j in range(comp_record.config['TOTAL_CLIENTS']):
-                if comp_record.csystem_tmat[i][j] == 0.01:
-                    zero_interaction_clients.append(j)
-                else:
-                    interaction_trust_vals.append(comp_record.csystem_tmat[i][j])
-            
-            if len(zero_interaction_clients) == comp_record.config['TOTAL_CLIENTS']:
-                not_selected_before_starting += 1
-            # print(f"client{i} had zero_interactions: {zero_interaction_clients}")
-
-            if len(interaction_trust_vals) > 1:
-                interaction_trust_mean = np.mean(np.array(interaction_trust_vals))
-                interaction_trust_std = np.std(np.array(interaction_trust_vals))
-                sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
-                for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
-                    comp_record.csystem_tmat[i][j] = sampled_trust
-                    comp_record.csystem_tmat[j][i] = sampled_trust
-        print(f"{not_selected_before_starting} clients were not selected in starting rounds")
-
-
-    sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
-    comp_record.csystem_tmat = comp_record.csystem_tmat / sum_of_rows[:, np.newaxis]
-
-    # client i would have 100% trust on itself
+def fill_up_rem_trust_mat_and_vec(comp_record):
+    not_selected_before_starting = 0
+    ## step 1, find mean, std from the non_zero values and also note down these clients
     for i in range(comp_record.config['TOTAL_CLIENTS']):
-        comp_record.csystem_tmat[i][i] = (1+1)/200
+        zero_interaction_clients = list()
+        interaction_trust_vals = list()
+        for j in range(comp_record.config['TOTAL_CLIENTS']):
+            if comp_record.csystem_tmat[i][j] == 0.01:
+                zero_interaction_clients.append(j)
+            else:
+                interaction_trust_vals.append(comp_record.csystem_tmat[i][j])
+        
+        if len(zero_interaction_clients) == comp_record.config['TOTAL_CLIENTS']:
+            not_selected_before_starting += 1
+        # print(f"client{i} had zero_interactions: {zero_interaction_clients}")
 
-    ## also we give 100% trust between intial_validation_clients, since we starting with same initial trust 0.01
-    ## between all clients, we just add this extra trust
-    num_validating_clients = len(initial_validation_clients)
-    for i in range(num_validating_clients):
-        for j in range(i+1, num_validating_clients):
-            comp_record.csystem_tmat[initial_validation_clients[i]][initial_validation_clients[j]] += (1+1)/200
-            comp_record.csystem_tmat[initial_validation_clients[j]][initial_validation_clients[i]] += (1+1)/200
-    
-    ## renormalizing the trust matrix
-    sum_of_rows = comp_record.csystem_tmat.sum(axis=1)
-    comp_record.csystem_tmat = comp_record.csystem_tmat / sum_of_rows[:, np.newaxis]
-
-    ## Since we pick clients based on trust vec while cos_defence is selected, so we need to make sure that 
-    ## trust vec sums upto 1
-    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
+        if len(interaction_trust_vals) > 1:
+            interaction_trust_mean = np.mean(np.array(interaction_trust_vals))
+            interaction_trust_std = np.std(np.array(interaction_trust_vals))
+            sampled_interaction_trust_vals = list(np.random.normal(interaction_trust_mean, interaction_trust_std, len(zero_interaction_clients)))
+            for j, sampled_trust in zip(zero_interaction_clients, sampled_interaction_trust_vals):
+                comp_record.csystem_tmat[i][j] = sampled_trust
+                comp_record.csystem_tmat[j][i] = sampled_trust
+    print(f"{not_selected_before_starting} clients were not selected in starting rounds")
 
 
 
@@ -294,7 +288,10 @@ def fill_initial_trust(comp_record, computing_clients):
             for j in range(i+1, num_computing_clients):
                 comp2_vec = copy.deepcopy(comp_record.all_agg_grads[computing_clients[j]]).reshape(1, -1)
                 comp2_vec /= np.linalg.norm(comp2_vec)
-                new_trust_val = (1+cosine_similarity(comp1_vec, comp2_vec)[0][0])/200
+                new_trust_val = (1+cosine_similarity(comp1_vec, comp2_vec)[0][0])/2
+
+                if comp_record.config['TN_INT']:
+                    new_trust_val /= 100
 
                 prev_val_ij = comp_record.csystem_tmat[computing_clients[i], computing_clients[j]]
                 comp_record.csystem_tmat[computing_clients[i], computing_clients[j]] = prev_val_ij*comp_record.config['BETA'] + (1-comp_record.config['BETA'])*new_trust_val
@@ -347,10 +344,16 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
     ## update trust matrix
     # Step 4, 5 Computing trust and updating the system trust matrix,
     if comp_record.config['COLLAB_MODE']:
-        agg_val_vector = torch.zeros(comp_record.ind_agg_grads[validating_clients[0]].size())
-        ## join grad vector from all validation client and use that for cosine similarity for all computing clients
-        for val_client in validating_clients:
-            agg_val_vector += copy.deepcopy(comp_record.ind_agg_grads[val_client])
+        if comp_record.config['FEATURE_FINDING_ALGO'] == 'none':
+            agg_val_vector = torch.zeros(comp_record.all_agg_grads[validating_clients[0]].size())
+            ## join grad vector from all validation client and use that for cosine similarity for all computing clients
+            for val_client in validating_clients:
+                agg_val_vector += copy.deepcopy(comp_record.all_agg_grads[val_client])
+        else:
+            agg_val_vector = torch.zeros(comp_record.ind_agg_grads[validating_clients[0]].size())
+            ## join grad vector from all validation client and use that for cosine similarity for all computing clients
+            for val_client in validating_clients:
+                agg_val_vector += copy.deepcopy(comp_record.ind_agg_grads[val_client])
         
         agg_val_vector = agg_val_vector.reshape(1, -1)
         agg_val_vector /= np.linalg.norm(agg_val_vector)
@@ -358,7 +361,10 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
         ## now we iterate over the computing clients to give them trust values
         comp_trusts = list()
         for comp_client in computing_clients:
-            comp_vec = copy.deepcopy(comp_record.ind_agg_grads[comp_client]).reshape(1, -1)
+            if comp_record.config['FEATURE_FINDING_ALGO'] == 'none':
+                comp_vec = copy.deepcopy(comp_record.all_agg_grads[comp_client]).reshape(1, -1)
+            else:
+                comp_vec = copy.deepcopy(comp_record.ind_agg_grads[comp_client]).reshape(1, -1)
             comp_vec /= np.linalg.norm(comp_vec)
             comp_trusts.append((1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2)
 
@@ -382,11 +388,17 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
                     comp_record.all_client_types.append(client_type)
     else:
         for val_client in validating_clients:
-            val_vec = copy.deepcopy(comp_record.ind_agg_grads[val_client]).reshape(1, -1)
+            if comp_record.config['FEATURE_FINDING_ALGO'] == 'none':
+                val_vec = copy.deepcopy(comp_record.all_agg_grads[val_client]).reshape(1, -1)
+            else:
+                val_vec = copy.deepcopy(comp_record.ind_agg_grads[val_client]).reshape(1, -1)
             val_vec /= np.linalg.norm(val_vec)
             for comp_client in computing_clients:
                 # if comp_client != val_client:
-                comp_vec = copy.deepcopy(comp_record.ind_agg_grads[comp_client]).reshape(1, -1)
+                if comp_record.config['FEATURE_FINDING_ALGO'] == 'none':
+                    comp_vec = copy.deepcopy(comp_record.all_agg_grads[comp_client]).reshape(1, -1)
+                else:
+                    comp_vec = copy.deepcopy(comp_record.ind_agg_grads[comp_client]).reshape(1, -1)
                 comp_vec /= np.linalg.norm(comp_vec)
                 new_trust_val = (1+cosine_similarity(comp_vec, val_vec)[0][0])/2
                 
@@ -857,9 +869,12 @@ def start_fl(with_config, dist_id=0):
 
     ## initializing comp_record grad bank, based on model and layers selected
     comp_record.sel_layer_names = get_selected_layers(server_model.layer_names, comp_record.config['CONSIDER_LAYERS'])
-    for layer_name in comp_record.sel_layer_names:
-        comp_record.grad_bank[layer_name + '.weight'] = list()
-        comp_record.grad_bank[layer_name + '.bias'] = list()
+    
+    if comp_record.config['FEATURE_FINDING_ALGO'] != 'none':
+        comp_record.save_for_ft_finding = True
+        for layer_name in comp_record.sel_layer_names:
+            comp_record.grad_bank[layer_name + '.weight'] = list()
+            comp_record.grad_bank[layer_name + '.bias'] = list()
     
     comp_record.all_agg_grads = list()
     init_grad_vec_size = 0
@@ -912,6 +927,8 @@ def start_fl(with_config, dist_id=0):
 
     if comp_record.config['COS_DEFENCE']:
         initial_validation_clients = init_validation_clients(comp_record, poisoned_clients, rng2)
+        if comp_record.config['FEATURE_FINDING_ALGO'] == 'none':
+            boost_trust(comp_record, initial_validation_clients)
 
     ###Training and testing model every kth round
     ## here source or poison class we means same
@@ -935,20 +952,20 @@ def start_fl(with_config, dist_id=0):
     ###
     ### Actual federated learning starts here
     ###
-    for i in range(comp_record.config['FED_ROUNDS']):
+    for round_num in range(comp_record.config['FED_ROUNDS']):
 
         ## selecting clients based on probability or always choose clients with highest trust
         logging.debug(f"System trust vec sum: {comp_record.csystem_tvec.sum()}")
-        # print(f"round: {i}, system trust vec: {comp_record.csystem_tvec}")
+        # print(f"round: {round_num}, system trust vec: {comp_record.csystem_tvec}")
         trust_scores.append(comp_record.csystem_tvec.copy())
         if comp_record.config['COS_DEFENCE']:
             ## increase the learning rate now
-            if i == start_cosdefence:
+            if round_num == start_cosdefence:
                 for optimizer in optimizers:
                     for op_grp in optimizer.param_groups:
                         op_grp['lr'] = comp_record.config['LEARNING_RATE']
 
-            if i >= start_cosdefence:
+            if round_num >= start_cosdefence:
                 if comp_record.config['SEL_METHOD'] == 0:
                     clients_selected = rng1.choice(comp_record.config['TOTAL_CLIENTS'], size=int(comp_record.config['TOTAL_CLIENTS'] * comp_record.config['CLIENT_FRAC']), replace=False)
                 elif comp_record.config['SEL_METHOD'] == 1:
@@ -972,11 +989,11 @@ def start_fl(with_config, dist_id=0):
             clients_selected = rng1.choice(comp_record.config['TOTAL_CLIENTS'], size=int(comp_record.config['TOTAL_CLIENTS'] * comp_record.config['CLIENT_FRAC']), replace=False)
 
 
-        logging.info(f"selected clients in round {i}: {clients_selected}")
+        logging.info(f"selected clients in round {round_num}: {clients_selected}")
 
         poisoned_clients_selected = list(set(poisoned_clients) & set(clients_selected))
         
-        logging.info(f"poisoned clients in round {i}: {poisoned_clients_selected}")
+        logging.info(f"poisoned clients in round {round_num}: {poisoned_clients_selected}")
         poisoned_clients_sel_in_rounds.append(poisoned_clients_selected)
 
         temp_training_losses = []
@@ -990,52 +1007,36 @@ def start_fl(with_config, dist_id=0):
         # if turned on we change the client_weights from normal to computed by CosDefence
         logging.info(f"CosDefence is On: {comp_record.config['COS_DEFENCE']}")
         if comp_record.config['COS_DEFENCE']:
-            if comp_record.config['FEATURE_FINDING_ALGO'] != "none":
-                if i == comp_record.config['GRAD_COLLECTION_START']:
-                    comp_record.save_for_ft_finding = True
-            
-                if i < comp_record.config['GRAD_COLLECT_FOR']:
+            if comp_record.config['FEATURE_FINDING_ALGO'] == 'none':
+                cos_defence(comp_record, clients_selected, poisoned_clients_selected)
+            else:
+                if round_num < start_cosdefence:
                     ## calculate similarity between clients from initial_aggregate_grads, to fill up trust matrix and trust vec
                     fill_initial_trust(comp_record, clients_selected)
 
-                if i == comp_record.config['GRAD_COLLECT_FOR'] - 1:
-                    comp_record.indicative_grads, counts = find_indicative_grads(comp_record.grad_bank, comp_record.config['FEATURE_FINDING_ALGO'], comp_record.config['CLUSTER_SEP'])
-                    comp_record.save_for_ft_finding = False
-                    comp_record.collect_features = True
-                    
-                    ## this code is upload pre-calculated grad features.
-                    # layer_names = ['fc1', 'fc2', 'output_layer']
-                    # counts = 0
-                    # for name in layer_names:
-                    #     bias_arr = np.load(name + '.bias.npy')
-                    #     weight_arr = np.load(name + '.weight.npy')
-                    #     logging.info(f"Indicative grad of {name} has sizes")
-                    #     logging.info(bias_arr.shape)
-                    #     logging.info(weight_arr.shape)
-                    #     indicative_grads[name + '.bias'] = bias_arr
-                    #     indicative_grads[name + '.weight'] = weight_arr
-                    #     counts += np.count_nonzero(bias_arr)
-                    #     counts += np.count_nonzero(weight_arr)
-                    
-                    comp_record.csystem_tvec /= comp_record.csystem_tvec.sum()
-                    ## initializing aggregate grads so that now these grads can ve collected as flat vector
-                    for k in range(comp_record.config['TOTAL_CLIENTS']):
-                        comp_record.ind_agg_grads.append(torch.zeros((1, counts)))
+                    if round_num == start_cosdefence - 1:
+                        comp_record.indicative_grads, counts = find_indicative_grads(comp_record.grad_bank, comp_record.config['FEATURE_FINDING_ALGO'], comp_record.config['CLUSTER_SEP'])
+                        comp_record.save_for_ft_finding = False
+                        comp_record.collect_features = True
+                        ## initializing aggregate grads so that now these grads can ve collected as flat vector
+                        for k in range(comp_record.config['TOTAL_CLIENTS']):
+                            comp_record.ind_agg_grads.append(torch.zeros((1, counts)))
 
-                    logging.info(f"Found {counts} indicative grads")
-
-                    ## before starting cos_defence, fill up matrix and vec using mean, std method
-                    fill_up_rem_trust_mat_and_vec(comp_record, initial_validation_clients)
+                        logging.info(f"Found {counts} indicative grads")
+                        ## before starting cos_defence, fill up matrix and vec using mean, std method
+                        if comp_record.config['TRUST_SAMPLING']:
+                            fill_up_rem_trust_mat_and_vec(comp_record)
+                        boost_trust(comp_record, initial_validation_clients)
                 else:
+                    # print(round_num)
                     cos_defence(comp_record, clients_selected, poisoned_clients_selected)
-            else:
-                cos_defence(comp_record, clients_selected, poisoned_clients_selected)
+                
 
 
 
         ## New weight setting strategy, if cos_defence is on then it modifies comp_record.csystem_tvec, meaning
         ## it changes the weights of the client selected, if not initial trust vec will be used.
-        if comp_record.config['COS_DEFENCE'] and i >= start_cosdefence:
+        if comp_record.config['COS_DEFENCE'] and round_num >= start_cosdefence:
             client_weights = np.copy(comp_record.csystem_tvec)
             client_weights = torch.from_numpy(client_weights)
             
@@ -1059,10 +1060,10 @@ def start_fl(with_config, dist_id=0):
 
         # aggregate to update server_model and client_models
         server_model, client_models = fed_avg(server_model, clients_selected, client_models, client_weights)
-        logging.info(f"Round {i} complete")
+        logging.info(f"Round {round_num} complete")
     
         # Testing Model every kth round
-        if (i + 1) % comp_record.config['TEST_EVERY'] == 0:
+        if (round_num + 1) % comp_record.config['TEST_EVERY'] == 0:
             testing_loss, avg_acc, cls_accs, predictions, ground_truths = run_test(server_model, test_data_loader, loss_fn, device)
             avg_precision, avg_recall, avg_f1_score, _support = precision_recall_fscore_support(ground_truths, predictions, average='weighted', zero_division=1)
             avg_accs.append(avg_acc)

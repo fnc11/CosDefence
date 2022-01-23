@@ -174,59 +174,24 @@ def run_with_parallization(summary_data_list, initial_config, random_dists):
 
 
 def run_sequentially(summary_data_list, config, random_dists):
+    config['COS_DEFENCE'] = False
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
+    
     config['COS_DEFENCE'] = True
-
-    config['FEATURE_FINDING_ALGO'] = "none"
-
-    # config['TRUST_MODIFY_STRATEGY'] = 0
-    # try:
-    #     summary_data_list.append(run_and_summarize(config, random_dists))
-    # except Exception as e:
-    #     print(e)
-    
-    config['TRUST_MODIFY_STRATEGY'] = 1
     try:
         summary_data_list.append(run_and_summarize(config, random_dists))
     except Exception as e:
         print(e)
-    
-    # config['TRUST_MODIFY_STRATEGY'] = 2
-    # try:
-    #     summary_data_list.append(run_and_summarize(config, random_dists))
-    # except Exception as e:
-    #     print(e)
 
-    # config['TRUST_MODIFY_STRATEGY'] = 3
-    # try:
-    #     summary_data_list.append(run_and_summarize(config, random_dists))
-    # except Exception as e:
-    #     print(e)
-
-    config['FEATURE_FINDING_ALGO'] = "auror"
-
-    # config['TRUST_MODIFY_STRATEGY'] = 0
-    # try:
-    #     summary_data_list.append(run_and_summarize(config, random_dists))
-    # except Exception as e:
-    #     print(e)
-    
-    config['TRUST_MODIFY_STRATEGY'] = 1
+    config['TRUST_NORMALIZATION'] = True
     try:
         summary_data_list.append(run_and_summarize(config, random_dists))
     except Exception as e:
         print(e)
-    
-    # config['TRUST_MODIFY_STRATEGY'] = 2
-    # try:
-    #     summary_data_list.append(run_and_summarize(config, random_dists))
-    # except Exception as e:
-    #     print(e)
 
-    # config['TRUST_MODIFY_STRATEGY'] = 3
-    # try:
-    #     summary_data_list.append(run_and_summarize(config, random_dists))
-    # except Exception as e:
-    #     print(e)
     
     return summary_data_list
 

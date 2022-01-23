@@ -1,0 +1,61 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(OK) Loading cudnn 8.0.5
+/home/fr424070/.local/lib/python3.8/site-packages/torchvision/datasets/mnist.py:498: UserWarning: The given NumPy array is not writeable, and PyTorch does not support non-writeable tensors. This means you can write to the underlying (supposedly non-writeable) NumPy array using the tensor. You may want to copy the array to protect its data or make it writeable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at  /pytorch/torch/csrc/utils/tensor_numpy.cpp:180.)
+  return torch.from_numpy(parsed.astype(m[2], copy=False)).view(*s)
+/home/fr424070/.local/lib/python3.8/site-packages/torch/nn/functional.py:718: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at  /pytorch/c10/core/TensorImpl.h:1156.)
+  return torch.max_pool2d(input, kernel_size, stride, padding, dilation, ceil_mode)
+Major offender: 2, Minor offender: 18
+Major offender: 3, Minor offender: 17
+Major offender: 3, Minor offender: 17
+Major offender: 1, Minor offender: 19
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'fmnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn0', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 60, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 40, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': False, 'TN_INT': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 77.196 +- 1.0668570663401935
+mean_mean_avg_accs: 89.1047 +- 0.15749685711150593
+mean_mean_poison_class_f1_scores: 81.09565546388727 +- 0.46324719885184384
+mean_mean_avg_f1_scores: 89.01040175554397 +- 0.15744700950924204
+Major offender: 2, Minor offender: 18
+0 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+0 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+0 clients were not selected in starting rounds
+Major offender: 1, Minor offender: 19
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 20
+0 clients were not selected in starting rounds
+Selected config
+{'DATASET': 'fmnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn0', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 60, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 40, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': False, 'TN_INT': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 82.93500000000002 +- 1.3544408440385929
+mean_mean_avg_accs: 89.11949999999999 +- 0.15588168590312707
+mean_mean_poison_class_f1_scores: 82.04698953223567 +- 0.30017519243762414
+mean_mean_avg_f1_scores: 89.0675004484851 +- 0.16666388234704604
+Major offender: 2, Minor offender: 18
+0 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+0 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+0 clients were not selected in starting rounds
+Major offender: 1, Minor offender: 19
+0 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 20
+0 clients were not selected in starting rounds
+Selected config
+{'DATASET': 'fmnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn0', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 60, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 40, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': True, 'TN_INT': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 78.30499999999999 +- 1.8460985889166401
+mean_mean_avg_accs: 89.1356 +- 0.21556655584761153
+mean_mean_poison_class_f1_scores: 81.25563405799028 +- 0.7833762228732576
+mean_mean_avg_f1_scores: 89.08580155091384 +- 0.22810426866324707

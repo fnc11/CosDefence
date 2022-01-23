@@ -1,0 +1,42 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(OK) Loading cudnn 8.0.5
+/home/fr424070/.local/lib/python3.8/site-packages/torchvision/datasets/mnist.py:498: UserWarning: The given NumPy array is not writeable, and PyTorch does not support non-writeable tensors. This means you can write to the underlying (supposedly non-writeable) NumPy array using the tensor. You may want to copy the array to protect its data or make it writeable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at  /pytorch/torch/csrc/utils/tensor_numpy.cpp:180.)
+  return torch.from_numpy(parsed.astype(m[2], copy=False)).view(*s)
+Major offender: 2, Minor offender: 18
+Major offender: 3, Minor offender: 17
+Major offender: 3, Minor offender: 17
+Major offender: 1, Minor offender: 19
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'mnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'nnet', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 30, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'none', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.8, 'BETA': 0.8, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': True, 'GAMMA': 0.1, 'VAL_SYS_TRUST': 0.5, 'VAL_VAL_TRUST': 0.5, 'CL_SELF_TRUST': 0.5, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 79.5875968992248 +- 1.0311959961039745
+mean_mean_avg_accs: 92.70639999999999 +- 0.12857645196535664
+mean_mean_poison_class_f1_scores: 87.21075300046995 +- 0.7431292648535568
+mean_mean_avg_f1_scores: 92.61178040826614 +- 0.14318543595400046
+Major offender: 2, Minor offender: 18
+2 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+2 clients were not selected in starting rounds
+Major offender: 3, Minor offender: 17
+2 clients were not selected in starting rounds
+Major offender: 1, Minor offender: 19
+2 clients were not selected in starting rounds
+Major offender: 0, Minor offender: 20
+2 clients were not selected in starting rounds
+Selected config
+{'DATASET': 'mnist', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 10, 'MODEL': 'nnet', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 30, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 0.01, 'ALPHA': 0.8, 'BETA': 0.8, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': True, 'TRUST_NORMALIZATION': True, 'GAMMA': 0.1, 'VAL_SYS_TRUST': 0.5, 'VAL_VAL_TRUST': 0.5, 'CL_SELF_TRUST': 0.5, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 84.10077519379846 +- 1.0058658557802467
+mean_mean_avg_accs: 92.76975999999999 +- 0.17569475347887284
+mean_mean_poison_class_f1_scores: 89.70102564243481 +- 0.49624441118705387
+mean_mean_avg_f1_scores: 92.72785611632168 +- 0.17684286753061634

@@ -49,16 +49,16 @@ def run_and_summarize(config, random_dists):
 
 def run_sequentially(summary_data_list, config, random_dists):
     config['COS_DEFENCE'] = True    
-    gamma_vars = [0.05, 0.1, 0.2]
+    # gamma_vars = [0.05, 0.1, 0.2]
+    config['ALPHA'] = 0.4
+    config['BETA'] = 0.6
     inc_factors = [2, 5, 10]
-    for gamma in gamma_vars:
-        config['GAMMA'] = gamma
-        for inc_factor in inc_factors:
-            config['TRUST_INC'] = inc_factor
-            try:
-                summary_data_list.append(run_and_summarize(config, random_dists))
-            except Exception as e:
-                print(e)
+    for inc_factor in inc_factors:
+        config['TRUST_INC'] = inc_factor
+        try:
+            summary_data_list.append(run_and_summarize(config, random_dists))
+        except Exception as e:
+            print(e)
     
     return summary_data_list
 
