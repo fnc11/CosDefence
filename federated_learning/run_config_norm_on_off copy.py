@@ -48,16 +48,19 @@ def run_and_summarize(config, random_dists):
 
 
 def run_sequentially(summary_data_list, config, random_dists):
-    config['COS_DEFENCE'] = True
-    # collect_var = {'mnist':[25], 'fmnist': [40], 'cifar10': [20, 40]}
-    collect_var = [5, 20]
-    for collect_rounds in collect_var:
-        config['GRAD_COLLECT_FOR'] = collect_rounds
-        try:
-            summary_data_list.append(run_and_summarize(config, random_dists))
-        except Exception as e:
-            print(e)
     
+    config['TRUST_NORMALIZATION'] = False
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
+    
+    config['TRUST_NORMALIZATION'] = True
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
+
     return summary_data_list
 
 

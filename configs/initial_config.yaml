@@ -1,0 +1,32 @@
+# FL_DATA
+DATASET: "mnist"
+TOTAL_CLIENTS: 100  # total clients 10|100
+CLIENT_FRAC: 0.2  # client fraction to select in each round 0.1|0.2|0.4
+POISON_FRAC: 0.2  # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5|0.6
+CLASS_RATIO: 10  # class ratio in client data distribution, choose 1|4|10
+
+# FL_SETTINGS
+MODEL: "nnet"  # model to be used
+LEARNING_RATE: 0.001  # client's model learning rate
+LOCAL_EPOCHS: 10 # epochs to run before clients send back the model update
+FED_ROUNDS: 30 # federated rounds to run
+
+# COS_DEFENCE_SETTINGS
+COS_DEFENCE: True # to turn on cos_defence
+CONSIDER_LAYERS: "l1" # choose layers for grad collection f1|l1
+GRAD_COLLECT_FOR: 5  #for how many fed rounds grads are collected 
+CLUSTER_SEP: 0.01   # parameter for FFA Auror
+ALPHA: 0.8  # parameter for updating system trust vector
+BETA: 0.8  # parameter for updating system trust matrix
+GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
+TRUST_INC: 2
+TRUST_MODIFY_STRATEGY: 1  # 0: using clustering based, 1: for using median, mean method, 2: none
+HONEST_PARDON_FACTOR: 1.0  # it decides how much you want to pardon good clients
+TRUST_SAMPLING: True  # whether to fill matix by sampling
+TRUST_NORMALIZATION: False  # to normalize trust values before filling in the matrix
+
+# Other Settings
+LOG_LEVEL: 'ERROR' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
+JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization
+GEN_PLOTS: True # whehter to generate plot for experiment or not, this will also control generating plot dfs
+SAVE_HTML_PLOTS: False # whether to save interactive html plots or just png image plots.
