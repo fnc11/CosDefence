@@ -581,7 +581,7 @@ def gen_trust_plots(config, client_ids, validation_client_ids, trust_vals, label
     save_location = os.path.join(base_path, 'results/plots/')
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}_GCF{config['GRAD_COLLECT_FOR']}"
     if config['COLLAB_MODE']:
         ## since in COLLAB_MODE multiple validation clients give trust value we don't have 1:1 ref for
         ## computing client who gave them trust value
@@ -648,7 +648,7 @@ def gen_trust_curves(config, trust_scores, initial_validation_clients, poisoned_
     global base_path
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}_GCF{config['GRAD_COLLECT_FOR']}"
     trust_scores_df.to_pickle(f'{dataframe_location}trust_scores_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
     
     save_location = os.path.join(base_path, 'results/plots/')
@@ -705,45 +705,47 @@ def gen_acc_f1_poison_plot(config, poison_class_accuracy, avg_accuracy, poison_c
     ## saving this plot data in order to later compare two plots if we need to
     global base_path
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}_GCF{config['GRAD_COLLECT_FOR']}"
 
     testing_round = list(range(config['TEST_EVERY']-1, config['FED_ROUNDS'], config['TEST_EVERY']))
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
-    accuracy_poison_df = pd.DataFrame()
-    accuracy_poison_df['testing_round'] = testing_round
-    accuracy_poison_df['avg_accuracy'] = avg_accuracy
-    accuracy_poison_df['poison_class_accuracy'] = poison_class_accuracy
-    accuracy_poison_df.to_pickle(f'{dataframe_location}accuracy_poison_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
+    acc_f1_poison_df = pd.DataFrame()
+    acc_f1_poison_df['testing_round'] = testing_round
+    acc_f1_poison_df['avg_accuracy'] = avg_accuracy
+    acc_f1_poison_df['poison_class_accuracy'] = poison_class_accuracy
+    acc_f1_poison_df['avg_f1_scores'] = avg_f1_scores
+    acc_f1_poison_df['poison_class_f1_scores'] = poison_class_f1_scores
+    acc_f1_poison_df.to_pickle(f'{dataframe_location}accuracy_poison_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
     
     ## plotting
     save_location = os.path.join(base_path, 'results/plots/')
-    acc_poison_fig = make_subplots(rows=2, cols=1,
+    acc_f1_poison_fig = make_subplots(rows=2, cols=1,
                             shared_xaxes=True,
                             vertical_spacing=0.01)
 
-    acc_poison_fig.add_trace(go.Scatter(name='Avg Accuracy', x=testing_round, y=avg_accuracy, mode='lines+markers'),
+    acc_f1_poison_fig.add_trace(go.Scatter(name='Avg Accuracy', x=testing_round, y=avg_accuracy, mode='lines+markers'),
                                 row=1, col=1)
-    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=poison_class_accuracy, mode='lines+markers'),
-                                row=1, col=1)
-
-    acc_poison_fig.add_trace(go.Scatter(name='Avg F1-Measure', x=testing_round, y=avg_f1_scores, mode='lines+markers', marker_symbol='square'),
-                                row=1, col=1)
-    acc_poison_fig.add_trace(go.Scatter(name='Poisoned Class F1-Measure', x=testing_round, y=poison_class_f1_scores, mode='lines+markers', marker_symbol='square'),
+    acc_f1_poison_fig.add_trace(go.Scatter(name='Poisoned Class Accuracy', x=testing_round, y=poison_class_accuracy, mode='lines+markers'),
                                 row=1, col=1)
 
-    acc_poison_fig.add_trace(go.Bar(name='Poisoned Examples', x=testing_round, y=poisoned_examples),
+    acc_f1_poison_fig.add_trace(go.Scatter(name='Avg F1-Measure', x=testing_round, y=avg_f1_scores, mode='lines+markers', marker_symbol='square'),
+                                row=1, col=1)
+    acc_f1_poison_fig.add_trace(go.Scatter(name='Poisoned Class F1-Measure', x=testing_round, y=poison_class_f1_scores, mode='lines+markers', marker_symbol='square'),
+                                row=1, col=1)
+
+    acc_f1_poison_fig.add_trace(go.Bar(name='Poisoned Examples', x=testing_round, y=poisoned_examples),
                                 row=2, col=1)
 
-    # acc_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
+    # acc_f1_poison_fig.add_trace(go.Scatter(name='Attack Success Rate', x=testing_round, y=attack_srates, mode='lines+markers'),
     #                             row=3, col=1), '#00B5F7'
 
-    acc_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#636EFA', '#EF553B', '#DC587D'],
+    acc_f1_poison_fig.update_layout(height=800, width=1200, colorway=['#636EFA', '#EF553B', '#636EFA', '#EF553B', '#DC587D'],
                                 title_text="Accuracy variations with poisoned examples")
     
     if config['SAVE_HTML_PLOTS']:
-        acc_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+        acc_f1_poison_fig.write_html(os.path.join(save_location,'{}_acc_poison_plot_{}.html'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
     else:
-        acc_poison_fig.write_image(os.path.join(save_location,'{}_acc_poison_plot_{}.png'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
+        acc_f1_poison_fig.write_image(os.path.join(save_location,'{}_acc_poison_plot_{}.png'.format(config_details, time.strftime("%Y-%m-%d %H:%M:%S", current_time))))
 
 
 
