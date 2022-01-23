@@ -2,11 +2,11 @@
 ### ask for 5 GB memory
 #SBATCH --mem-per-cpu=4G   #M is the default and can therefore be omitted, but could also be K(ilo)|G(iga)|T(era)
 ### name the job
-#SBATCH --job-name=fmnist_fur_tests
+#SBATCH --job-name=fmnist_grad_collect_plot
 ### job run time
-#SBATCH --time=08:00:00
+#SBATCH --time=04:00:00
 ### declare the merged STDOUT/STDERR file
-#SBATCH --output=fmnist_fur_tests.%J.txt
+#SBATCH --output=fmnist_grad_collect_plot_logs.%J.txt
 ###
 #SBATCH --mail-type=ALL
 ###
@@ -28,4 +28,4 @@ module load cudnn/8.0.5
 # pip3 install --user pyyaml
 # pip3 install --user torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
 
-python3 run_config_variations.py fmnist_modified.yaml
+python3 run_config_variations_ffa_grad_collect.py fmnist_modified.yaml

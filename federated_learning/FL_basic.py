@@ -715,6 +715,8 @@ def gen_acc_f1_poison_plot(config, poison_class_accuracy, avg_accuracy, poison_c
     acc_f1_poison_df['poison_class_accuracy'] = poison_class_accuracy
     acc_f1_poison_df['avg_f1_scores'] = avg_f1_scores
     acc_f1_poison_df['poison_class_f1_scores'] = poison_class_f1_scores
+    acc_f1_poison_df['poisoned_examples'] = poisoned_examples
+    poisoned_examples
     acc_f1_poison_df.to_pickle(f'{dataframe_location}accuracy_poison_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
     
     ## plotting
