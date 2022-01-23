@@ -1,0 +1,252 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(OK) Loading cudnn 8.0.5
+/home/qo964266/.local/lib/python3.8/site-packages/torch/nn/functional.py:718: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at  /pytorch/c10/core/TensorImpl.h:1156.)
+  return torch.max_pool2d(input, kernel_size, stride, padding, dilation, ceil_mode)
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.0, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 45.71505882352941 +- 1.5258331707797879
+mean_mean_avg_accs: 61.14011764705882 +- 1.65801680300024
+mean_mean_poison_class_f1_scores: 49.12266956654735 +- 1.4768963527180765
+mean_mean_avg_f1_scores: 60.93590762196968 +- 1.6453690547777415
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Files already downloaded and verified
+Major offender: 0, Minor offender: 0
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.0, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 47.114705882352936 +- 1.1191142691453995
+mean_mean_avg_accs: 61.595788235294116 +- 2.0645195939422893
+mean_mean_poison_class_f1_scores: 50.220795372969846 +- 1.4977514457277545
+mean_mean_avg_f1_scores: 61.43030878861729 +- 2.053857926675537
+Files already downloaded and verified
+Major offender: 0, Minor offender: 10
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.1, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 40.45070588235295 +- 0.6997532338155306
+mean_mean_avg_accs: 60.80675294117648 +- 1.1673974677086036
+mean_mean_poison_class_f1_scores: 46.58620473181007 +- 1.0975040264768903
+mean_mean_avg_f1_scores: 60.51016723851522 +- 1.1470052493883116
+Files already downloaded and verified
+Major offender: 0, Minor offender: 10
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Files already downloaded and verified
+Major offender: 1, Minor offender: 9
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.1, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 40.476470588235294 +- 2.1023421771343003
+mean_mean_avg_accs: 60.19134117647059 +- 1.6724921670957205
+mean_mean_poison_class_f1_scores: 46.297546753307195 +- 2.335355076271172
+mean_mean_avg_f1_scores: 59.890638150397116 +- 1.7164323613632055
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 36.54717647058824 +- 2.057820508614574
+mean_mean_avg_accs: 59.58803529411764 +- 0.8114280287327671
+mean_mean_poison_class_f1_scores: 43.72411747418597 +- 1.7655679192204812
+mean_mean_avg_f1_scores: 59.201485184543955 +- 0.8379375957903487
+Files already downloaded and verified
+Major offender: 2, Minor offender: 18
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 3, Minor offender: 17
+Files already downloaded and verified
+Major offender: 1, Minor offender: 19
+Files already downloaded and verified
+Major offender: 0, Minor offender: 20
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.2, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 35.38364705882353 +- 2.5335146860359536
+mean_mean_avg_accs: 58.87334117647059 +- 1.5902826409359703
+mean_mean_poison_class_f1_scores: 42.50017210989763 +- 2.358170771017866
+mean_mean_avg_f1_scores: 58.49031659500815 +- 1.6425651400405545
+Files already downloaded and verified
+Major offender: 4, Minor offender: 26
+Files already downloaded and verified
+Major offender: 4, Minor offender: 26
+Files already downloaded and verified
+Major offender: 1, Minor offender: 29
+Files already downloaded and verified
+Major offender: 2, Minor offender: 28
+Files already downloaded and verified
+Major offender: 1, Minor offender: 29
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.3, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 33.19976470588235 +- 2.6346371187328304
+mean_mean_avg_accs: 61.1956 +- 0.9988649568073341
+mean_mean_poison_class_f1_scores: 42.39808366258989 +- 2.463291095862435
+mean_mean_avg_f1_scores: 60.69832649948701 +- 1.0111949841304033
+Files already downloaded and verified
+Major offender: 4, Minor offender: 26
+Files already downloaded and verified
+Major offender: 4, Minor offender: 26
+Files already downloaded and verified
+Major offender: 1, Minor offender: 29
+Files already downloaded and verified
+Major offender: 2, Minor offender: 28
+Files already downloaded and verified
+Major offender: 1, Minor offender: 29
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.3, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 38.134 +- 4.000261261364004
+mean_mean_avg_accs: 60.78549411764707 +- 1.4258211555494824
+mean_mean_poison_class_f1_scores: 45.230012080451615 +- 2.911060864630831
+mean_mean_avg_f1_scores: 60.442173880271696 +- 1.4453674187710754
+Files already downloaded and verified
+Major offender: 5, Minor offender: 35
+Files already downloaded and verified
+Major offender: 4, Minor offender: 36
+Files already downloaded and verified
+Major offender: 5, Minor offender: 35
+Files already downloaded and verified
+Major offender: 6, Minor offender: 34
+Files already downloaded and verified
+Major offender: 6, Minor offender: 34
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.4, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 25.689647058823528 +- 1.1642294688141863
+mean_mean_avg_accs: 59.96672941176471 +- 1.1344751496574597
+mean_mean_poison_class_f1_scores: 35.38632851323989 +- 1.057496172375354
+mean_mean_avg_f1_scores: 59.16902668663371 +- 1.0925929768971956
+Files already downloaded and verified
+Major offender: 5, Minor offender: 35
+Files already downloaded and verified
+Major offender: 4, Minor offender: 36
+Files already downloaded and verified
+Major offender: 5, Minor offender: 35
+Files already downloaded and verified
+Major offender: 6, Minor offender: 34
+Files already downloaded and verified
+Major offender: 6, Minor offender: 34
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.4, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 31.540941176470586 +- 3.6932414959497066
+mean_mean_avg_accs: 60.37747058823529 +- 1.7077992572648009
+mean_mean_poison_class_f1_scores: 40.214166466962865 +- 3.4884846909979927
+mean_mean_avg_f1_scores: 59.79911811077649 +- 1.70358528474387
+Files already downloaded and verified
+Major offender: 4, Minor offender: 46
+Files already downloaded and verified
+Major offender: 8, Minor offender: 42
+Files already downloaded and verified
+Major offender: 4, Minor offender: 46
+Files already downloaded and verified
+Major offender: 5, Minor offender: 45
+Files already downloaded and verified
+Major offender: 6, Minor offender: 44
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.5, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 16.62882352941177 +- 2.3474914830464835
+mean_mean_avg_accs: 57.95364705882353 +- 1.1816130099107385
+mean_mean_poison_class_f1_scores: 24.72462694113512 +- 3.015269680163181
+mean_mean_avg_f1_scores: 56.771975133668356 +- 1.2036548072037037
+Files already downloaded and verified
+Major offender: 4, Minor offender: 46
+Files already downloaded and verified
+Major offender: 8, Minor offender: 42
+Files already downloaded and verified
+Major offender: 4, Minor offender: 46
+Files already downloaded and verified
+Major offender: 5, Minor offender: 45
+Files already downloaded and verified
+Major offender: 6, Minor offender: 44
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.5, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 26.051411764705882 +- 3.6330245075782743
+mean_mean_avg_accs: 58.93765882352941 +- 0.9686007568442047
+mean_mean_poison_class_f1_scores: 34.66305478199881 +- 3.692947568027149
+mean_mean_avg_f1_scores: 58.19972343219447 +- 1.075652560055537
+Files already downloaded and verified
+Major offender: 8, Minor offender: 52
+Files already downloaded and verified
+Major offender: 8, Minor offender: 52
+Files already downloaded and verified
+Major offender: 7, Minor offender: 53
+Files already downloaded and verified
+Major offender: 7, Minor offender: 53
+Files already downloaded and verified
+Major offender: 6, Minor offender: 54
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.6, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 7.350117647058823 +- 1.466219175730653
+mean_mean_avg_accs: 57.36535294117648 +- 0.5778819373920671
+mean_mean_poison_class_f1_scores: 12.200333549451258 +- 2.254794863970582
+mean_mean_avg_f1_scores: 55.57456430236299 +- 0.651219019509283
+Files already downloaded and verified
+Major offender: 8, Minor offender: 52
+Files already downloaded and verified
+Major offender: 8, Minor offender: 52
+Files already downloaded and verified
+Major offender: 7, Minor offender: 53
+Files already downloaded and verified
+Major offender: 7, Minor offender: 53
+Files already downloaded and verified
+Major offender: 6, Minor offender: 54
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.2, 'POISON_FRAC': 0.6, 'CREATE_DATASET': False, 'RANDOM_DATA': False, 'CLASS_RATIO': 4, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 10, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM_PROCESS': False, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': 30, 'CLUSTER_SEP': 1.0, 'ALPHA': 0.6, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_MODIFY_STRATEGY': 1, 'HONEST_PARDON_FACTOR': 1.0, 'RESET_AXIS': False, 'TRUST_SAMPLING': False, 'TRUST_NORMALIZATION': True, 'LOG_LEVEL': 'ERROR', 'JSON_RESULTS': True, 'GEN_PLOTS': True, 'SAVE_HTML_PLOTS': False}
+mean and std values after 5 random experiments
+mean_mean_poison_class_accs: 6.22164705882353 +- 2.5871843695294925
+mean_mean_avg_accs: 56.96949411764706 +- 1.6666075218755951
+mean_mean_poison_class_f1_scores: 10.282952692040476 +- 3.8466089696742007
+mean_mean_avg_f1_scores: 55.07462666093411 +- 1.6078694141519525
+Took 214705.87232171698 secs
