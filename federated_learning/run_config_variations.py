@@ -173,13 +173,34 @@ def run_with_parallization(summary_data_list, initial_config, random_dists):
     
 
 
-def run_sequentially(summary_data_list, initial_config, random_dists):
-    initial_config['COS_DEFENCE'] = True
-    initial_config['CLIENT_FRAC'] = 0.2
-    p_fracs = [0.1, 0.2, 0.3]
-    for p_frac in p_fracs:
-        initial_config['POISON_FRAC'] = p_frac
-        summary_data_list.append(run_and_summarize(initial_config, random_dists))
+def run_sequentially(summary_data_list, config, random_dists):
+    config['COS_DEFENCE'] = True
+    config['CLIENT_FRAC'] = 0.2
+    config['FEATURE_FINDING_ALGO'] = "none"
+
+    config['TRUST_MODIFY_STRATEGY'] = 0
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
+    
+    config['TRUST_MODIFY_STRATEGY'] = 1
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
+    
+    config['TRUST_MODIFY_STRATEGY'] = 2
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
+
+    config['TRUST_MODIFY_STRATEGY'] = 3
+    try:
+        summary_data_list.append(run_and_summarize(config, random_dists))
+    except Exception as e:
+        print(e)
     
     return summary_data_list
 
@@ -197,12 +218,8 @@ def main():
         ## distribution creation can be done in single time using prepare_data script
         ## we don't create these dist again, because it increases randomness and we can't compare
         ## the results with different settings.
-        # random_dists = 2
-                
-        ## any type of variations can be added in nested structure
-        ## first one without cos_defence on with fixed environment
-        # summary_data_list = run_with_parallization(summary_data_list, config, 5)
-        summary_data_list = run_sequentially(summary_data_list, config, 5)
+        random_dists = 5
+        summary_data_list = run_sequentially(summary_data_list, config, random_dists)
 
 
 

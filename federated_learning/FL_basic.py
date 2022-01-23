@@ -344,6 +344,9 @@ def cos_defence(comp_record, computing_clients, poisoned_clients):
                 else:
                     honest_trust_threshold = median_val - comp_record.config['HONEST_PARDON_FACTOR']*std_dev
                     trust_arr = np.where(trust_arr >= honest_trust_threshold, trust_arr, 0.0)
+        elif comp_record.config['TRUST_MODIFY_STRATEGY'] == 3:
+            ## reverse strategy
+            trust_arr = 1-trust_arr
         else:
             pass
         
@@ -578,8 +581,7 @@ def gen_trust_plots(config, client_ids, validation_client_ids, trust_vals, label
     save_location = os.path.join(base_path, 'results/plots/')
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
     if config['COLLAB_MODE']:
         ## since in COLLAB_MODE multiple validation clients give trust value we don't have 1:1 ref for
         ## computing client who gave them trust value
@@ -646,7 +648,7 @@ def gen_trust_curves(config, trust_scores, initial_validation_clients, poisoned_
     global base_path
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
     trust_scores_df.to_pickle(f'{dataframe_location}trust_scores_{config_details}_{time.strftime("%Y-%m-%d %H:%M:%S", current_time)}.pkl')
     
     save_location = os.path.join(base_path, 'results/plots/')
@@ -703,8 +705,8 @@ def gen_acc_f1_poison_plot(config, poison_class_accuracy, avg_accuracy, poison_c
     ## saving this plot data in order to later compare two plots if we need to
     global base_path
     current_time = time.localtime()
-    config_details = f"{config['DATASET']}_C{config['CLIENT_FRAC']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_SEL{config['SEL_METHOD']}_CLB{config['COLLAB_MODE']}_LYRS{config['CONSIDER_LAYERS']}_FFA{config['FEATURE_FINDING_ALGO']}_CSEP{config['CLUSTER_SEP']}"
-    
+    config_details = f"{config['DATASET']}_P{config['POISON_FRAC']}_FDRS{config['FED_ROUNDS']}_CDF{config['COS_DEFENCE']}_TN{config['TRUST_NORMALIZATION']}_TMS{config['TRUST_MODIFY_STRATEGY']}_HPF{config['HONEST_PARDON_FACTOR']}_A{config['ALPHA']}_B{config['BETA']}"
+
     testing_round = list(range(config['TEST_EVERY']-1, config['FED_ROUNDS'], config['TEST_EVERY']))
     dataframe_location = os.path.join(base_path, 'results/plot_dfs/')
     accuracy_poison_df = pd.DataFrame()
@@ -1092,6 +1094,7 @@ def start_fl(with_config, dist_id=0):
         result_data = {}
         result_data['config'] = comp_record.config
         result_data['mean_poison_class_acc'] = mean_poison_class_acc
+        result_data['avg_training_losses'] = avg_training_losses
 
         result_data['avg_accs'] = avg_accs
         result_data['avg_precisions'] = avg_precisions
