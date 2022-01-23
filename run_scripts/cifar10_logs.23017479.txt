@@ -1,0 +1,161 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(!!) We are changing the naming scheme for the CUDA module. cuda/112 will become cuda/11.2 etc. The old version names will soon be deprecated, please update your scripts to avoid problems in the future.
+(OK) Loading cudnn 8.0.5
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': False, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 4.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 3.5603749999999996 +- 0.27754689919002906
+mean_mean_poison_class_accs: 28.292 +- 3.3482753583001497
+mean_total_class_accs_end: 62.653999999999996 +- 2.287956293288839
+mean_poison_class_accs_end: 36.519999999999996 +- 10.032028708092895
+mean_attack_states_end: 3.12 +- 0.47916594202843754
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 2.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 9.265624999999998 +- 7.444740173437888
+mean_mean_poison_class_accs: 22.057125000000003 +- 14.114861812996967
+mean_total_class_accs_end: 40.54600000000001 +- 24.973901257112395
+mean_poison_class_accs_end: 27.5 +- 25.35176522453614
+mean_attack_states_end: 8.16 +- 11.58664748751769
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 3.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 3.513625 +- 0.2665172954050076
+mean_mean_poison_class_accs: 32.5765 +- 5.752833644170497
+mean_total_class_accs_end: 62.64399999999999 +- 3.7384199871068517
+mean_poison_class_accs_end: 40.8 +- 9.817127889561183
+mean_attack_states_end: 3.9 +- 0.316227766016838
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 4.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 6.2132499999999995 +- 4.793412103475978
+mean_mean_poison_class_accs: 23.617250000000002 +- 10.87323624059323
+mean_total_class_accs_end: 50.356 +- 20.382979762537175
+mean_poison_class_accs_end: 22.060000000000002 +- 11.348409580201096
+mean_attack_states_end: 3.0 +- 1.553061492665374
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Selected config
+{'DATASET': 'cifar10', 'TOTAL_CLIENTS': 100, 'CLIENT_FRAC': 0.1, 'POISON_FRAC': 0.1, 'CREATE_DATASET': True, 'CLASS_RATIO': 10, 'MODEL': 'basic_cnn1', 'LEARNING_RATE': 0.001, 'BATCH_SIZE': 32, 'LOCAL_EPOCHS': 3, 'OPTIMIZER': 'adam', 'FED_ROUNDS': 200, 'TEST_EVERY': 1, 'RANDOM': True, 'COS_DEFENCE': True, 'SEL_METHOD': 1, 'REDUCE_LR': 1, 'COLLAB_MODE': True, 'COLLAB_ALL': True, 'CONSIDER_LAYERS': 'l1', 'GRAD_AGG': True, 'FEATURE_FINDING_ALGO': 'auror', 'GRAD_COLLECTION_START': 0, 'GRAD_COLLECT_FOR': -1, 'CLUSTER_SEP': 6.0, 'ALPHA': 0.8, 'BETA': 0.8, 'GAMMA': 0.1, 'TRUST_INC': 2, 'TRUST_CUT_METHOD': 2, 'HONEST_PARDON_FACTOR': 0.8, 'LOG_LEVEL': 'INFO', 'JSON_RESULTS': True}
+mean and std values after 5 random experiments
+mean_mean_attack_srates: 6.844874999999999 +- 6.044913220530961
+mean_mean_poison_class_accs: 24.400125 +- 9.43036017505429
+mean_total_class_accs_end: 47.968 +- 19.258081316683654
+mean_poison_class_accs_end: 36.279999999999994 +- 18.502475510049997
+mean_attack_states_end: 2.8 +- 1.438054240979804
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Files already downloaded and verified
+Preparing client data first
+Files already downloaded and verified
+Traceback (most recent call last):
+  File "run_config_variations.py", line 118, in <module>
+    main()
+  File "run_config_variations.py", line 86, in main
+    summary_data_list.append(run_and_summarize(config, repeat))
+  File "run_config_variations.py", line 25, in run_and_summarize
+    attack_srates, source_class_accs, total_accs, mean_attack_srate, mean_poison_class_acc = start_fl(config)
+  File "/rwthfs/rz/cluster/home/uu852150/repos/CosDefence/federated_learning/FL_basic.py", line 1001, in start_fl
+    cos_defence(clients_selected, poisoned_clients_selected, 0)
+  File "/rwthfs/rz/cluster/home/uu852150/repos/CosDefence/federated_learning/FL_basic.py", line 311, in cos_defence
+    comp_trusts.append((1+cosine_similarity(comp_vec, agg_val_vector)[0][0])/2)
+  File "/home/uu852150/.local/lib/python3.8/site-packages/sklearn/metrics/pairwise.py", line 1180, in cosine_similarity
+    X, Y = check_pairwise_arrays(X, Y)
+  File "/home/uu852150/.local/lib/python3.8/site-packages/sklearn/utils/validation.py", line 63, in inner_f
+    return f(*args, **kwargs)
+  File "/home/uu852150/.local/lib/python3.8/site-packages/sklearn/metrics/pairwise.py", line 146, in check_pairwise_arrays
+    X = check_array(X, accept_sparse=accept_sparse, dtype=dtype,
+  File "/home/uu852150/.local/lib/python3.8/site-packages/sklearn/utils/validation.py", line 63, in inner_f
+    return f(*args, **kwargs)
+  File "/home/uu852150/.local/lib/python3.8/site-packages/sklearn/utils/validation.py", line 734, in check_array
+    raise ValueError("Found array with %d feature(s) (shape=%s) while"
+ValueError: Found array with 0 feature(s) (shape=(1, 0)) while a minimum of 1 is required by check_pairwise_arrays.

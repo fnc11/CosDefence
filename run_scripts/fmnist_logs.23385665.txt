@@ -1,0 +1,20 @@
+(OK) Unloading intelmpi 2018.4.274
+(!!) no SLURM environment present, environment broken?
+(OK) Unloading Intel Suite 19.0.1.144
+(OK) Loading gcc system-default
+(OK) Intel MPI Suite 2018.4.274 loaded.
+(!!) no SLURM environment present, environment broken?
+(OK) Loading python 3.8.7
+(!!) The SciPy Stack is available: http://www.scipy.org/stackspec.html
+ Built with GCC compilers.
+(OK) Loading cuda 11.1.1
+(!!) We are changing the naming scheme for the CUDA module. cuda/112 will become cuda/11.2 etc. The old version names will soon be deprecated, please update your scripts to avoid problems in the future.
+(OK) Loading cudnn 8.0.5
+Traceback (most recent call last):
+  File "run_config_variations.py", line 10, in <module>
+    from FL_basic import start_fl
+  File "/rwthfs/rz/cluster/home/qo964266/repos/CosDefence/federated_learning/FL_basic.py", line 2, in <module>
+    from utils import find_indicative_grads, NpEncoder
+  File "/rwthfs/rz/cluster/home/qo964266/repos/CosDefence/federated_learning/utils.py", line 1, in <module>
+    from torch import tensor
+ModuleNotFoundError: No module named 'torch'

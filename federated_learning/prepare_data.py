@@ -1,9 +1,12 @@
+import sys
 import os
+import yaml
 from pathlib import Path
 import shutil
 from numpy.random import default_rng
 from collections import defaultdict
 import json
+import logging
 
 import torch
 from torchvision import datasets, transforms
@@ -47,7 +50,7 @@ def get_dataset(dataset_name):
     return trainset
 
 
-def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio=10):
+def create_client_data(rng, dataset_name='cifar10', class_ratio=10, dist_id=0):
     class_ids = defaultdict(list)
     trainset = get_dataset(dataset_name)
     for i in range(len(trainset)):
@@ -56,8 +59,9 @@ def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio
     client_img_tensors = [[] for i in range(100)]
     client_lbl_tensors = [[] for i in range(100)]
 
+    print("Preparing client data first")
+    logging.info(f"Class ratio used: {class_ratio}")
     if dataset_name == "mnist":
-        print(f"Class ratio used: {class_ratio}")
         # in mnist maximum number of samples each class at least have is 5421
         if class_ratio == 10:
             minor_share = 28  # so we will put 28 images from each minority class => 28*9*10 = 2520 
@@ -124,30 +128,25 @@ def create_client_data(random_setting=False, dataset_name='cifar10', class_ratio
         lbl_data = torch.stack(client_lbl_tensors[i])
         client_data.append((img_data, lbl_data))  # If we want to save as tuple or tensor we can decide
 
-    poison_params = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]  # no of clients poisoned out of 100
+    poison_params = [0, 10, 20, 30, 40, 50, 60]  # no of clients poisoned out of 100
     label_flips = [(2, 9)]
     total_clients = 100
-    if random_setting:
-        rng = default_rng()
-    else:
-        seed = 42
-        rng = default_rng(seed)
     global base_path
-    root_save_folder = os.path.join(base_path, f'data/{dataset_name}/fed_data/')
+    root_save_folder = os.path.join(base_path, f'data/{dataset_name}/fed_data/dist_{dist_id}/')
     # in case folder were present already, cleans the folder inside so that if we accidentally
     # ran ccds flag twice we don't poison data more than necessary
     shutil.rmtree(root_save_folder, ignore_errors=True)
     
     Path(root_save_folder).mkdir(parents=True, exist_ok=True)
 
-    print(root_save_folder)
+    logging.info(root_save_folder)
     for poison_param in poison_params:
         for k in range(len(label_flips)):
             save_folder = os.path.join(root_save_folder,f'label_flip{k}/', f'poisoned_{poison_param}CLs/')
             Path(save_folder).mkdir(parents=True, exist_ok=True)
-            print(save_folder)
+            logging.info(save_folder)
             clients_selected = rng.choice(total_clients, size=poison_param, replace=False)
-            print(clients_selected)
+            logging.info(clients_selected)
             
             # saving these clients which are selected as being poisonous
             pinfo_data = {}
@@ -226,5 +225,20 @@ def get_test_data_loader(dataset_name, batch_size):
     return test_loader
 
 
+
+def main():
+    global base_path
+    config_file = base_path + '/configs/' + sys.argv[1]
+    dists_to_create = int(sys.argv[2])
+    with open(config_file) as cfg_file:
+        config = yaml.safe_load(cfg_file)
+        if config['RANDOM_DATA']:
+            rng = default_rng()
+        else:
+            seed = 42
+            rng = default_rng(seed)
+        for dist_id in range(dists_to_create):
+            create_client_data(rng, config['DATASET'], config['CLASS_RATIO'], dist_id=dist_id)
+
 if __name__ == '__main__':
-    create_client_data()
+    main()

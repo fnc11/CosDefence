@@ -1,8 +1,10 @@
 # FL_DATA
 DATASET: "cifar10"
-CLIENT_FRAC: 0.1 # client fraction to select in each round 0.1|0.2|0.4|1.0
-POISON_FRAC: 0.4 # poisoned fraction for environment 0.0|0.1|0.2|0.4
-CREATE_DATASET: True # if true it creates FL Dataset
+TOTAL_CLIENTS: 100 # total clients 10|100
+CLIENT_FRAC: 0.2 # client fraction to select in each round 0.1|0.2|0.4|1.0
+POISON_FRAC: 0.2 # poisoned fraction for environment 0.0|0.1|0.2|0.4
+CREATE_DATASET: False # if true it creates FL Dataset
+RANDOM_DATA: False # to create data and poison data randomly or with fixed seed 42 
 CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
 
 
@@ -10,32 +12,37 @@ CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
 MODEL: "basic_cnn1" # model to be used
 LEARNING_RATE: 0.001 # client's model learning rate
 BATCH_SIZE: 32 # client model parameter
-LOCAL_EPOCHS: 3 # epochs to run before clients send back the model update
+LOCAL_EPOCHS: 10 # epochs to run before clients send back the model update
 OPTIMIZER: "adam" # client model parameter
 FED_ROUNDS: 200 # federated rounds to run
 TEST_EVERY: 1 # test the model for accuracy after every 3rd round
-RANDOM: False # to select candidates randomly or with fixed seed 42 
+RANDOM_PROCESS: False # to select candidates randomly or with fixed seed 42 
 
 
 # COS_DEFENCE_SETTINGS
 COS_DEFENCE: True # to turn on cos_defence
 SEL_METHOD: 1  # Client selection method, 0: total_random, 1: system_trust as probability, 2: top k clients according to system_trust
+REDUCE_LR: 1  # By what factor selected learning rate should be reduced in the starting before the cos_defence mechanism starts trust based gathering.
 COLLAB_MODE: True  # collaboration mode on means, all validation clients jointly assign trust
-CONSIDER_LAYERS: "f1l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
+COLLAB_ALL: True # whether all client's joint vector is used for validation or top half
+CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
 FEATURE_FINDING_ALGO: auror  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
 GRAD_COLLECTION_START: 0   # when to start collecting grads 
-GRAD_COLLECT_FOR: -1   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
-CLUSTER_SEP: 4.0   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
-ALPHA: 0.5   # parameter for updating system trust vector
-BETA: 0.5    # parameter for updating system trust matrix
-GAMMA: 0.5   # decides how much initial trust worthy clients in the environment
+GRAD_COLLECT_FOR: 30   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
+CLUSTER_SEP: 1.0   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
+ALPHA: 0.6   # parameter for updating system trust vector
+BETA: 0.8   # parameter for updating system trust matrix
+GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-TRUST_CUT_METHOD: 0  # 0 for using clustering method to segregate, 1 for using median, mean, std method
-HONEST_PARDON_FACTOR: 0.8 # it decides how much you want to pardon good clients getting bad trust values
-
+TRUST_MODIFY_STRATEGY: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
+HONEST_PARDON_FACTOR: 1.0 # it decides how much you want to pardon good clients getting bad trust values
+RESET_AXIS: False # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
+TRUST_SAMPLING: False # to fill matix by sampling
+TRUST_NORMALIZATION: True # to normalize trust values before filling in the matrix
 
 # LOG
-LOG_LEVEL: 'DEBUG' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
+LOG_LEVEL: 'ERROR' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
 JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization
-
+GEN_PLOTS: True # whehter to generate plot for experiment or not, this will also control generating plot dfs
+SAVE_HTML_PLOTS: False # whether to save interactive html plots or just png image plots.
