@@ -5,7 +5,7 @@ CLIENT_FRAC: 0.2 # client fraction to select in each round 0.1|0.2|0.4|1.0
 POISON_FRAC: 0.2 # poisoned fraction for environment 0.0|0.1|0.2|0.4
 CREATE_DATASET: False # if true it creates FL Dataset
 RANDOM_DATA: False # to create data and poison data randomly or with fixed seed 42 
-CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
+CLASS_RATIO: 1 # class ratio in client data distribution, choose 1|4|10
 
 
 # FL_SETTINGS

@@ -2,11 +2,11 @@
 ### ask for 4 GB memory
 #SBATCH --mem-per-cpu=4G   #M is the default and can therefore be omitted, but could also be K(ilo)|G(iga)|T(era)
 ### name the job
-#SBATCH --job-name=mnist_results_r10
+#SBATCH --job-name=mnist_results_r1
 ### job run time
 #SBATCH --time=08:00:00
 ### declare the merged STDOUT/STDERR file
-#SBATCH --output=mnist_results_r10_logs.%J.txt
+#SBATCH --output=mnist_results_r1_logs.%J.txt
 ###
 #SBATCH --mail-type=ALL
 ###
