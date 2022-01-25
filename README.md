@@ -46,9 +46,9 @@ Let's look at one of the configuration files `mnist_default.yaml`
 DATASET: "mnist"
 TOTAL_CLIENTS: 100 # total clients 10|100
 CLIENT_FRAC: 0.2 # client fraction to select in each round 0.1|0.2|0.4
-POISON_FRAC: 0.1 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9
-CREATE_DATASET: False # if true it creates FL Dataset
-RANDOM_DATA: True # to create data and poison data randomly or with fixed seed 42 
+POISON_FRAC: 0.2 # poisoned fraction for environment 0.0|0.1|0.2|0.3|0.4|0.5
+CREATE_DATASET: False # if true it creates FL Dataset everytime
+RANDOM_DATA: False # to create data and poison data randomly or with fixed seed 42 
 CLASS_RATIO: 10 # class ratio in client data distribution, choose 1|4|10
 
 
@@ -73,38 +73,32 @@ CONSIDER_LAYERS: "l1"  # choose layers for grad collection f2|f1|f1l1|l1|l2|all
 GRAD_AGG: True   # Collect all gradients over the iterations or just use last iteration grads
 FEATURE_FINDING_ALGO: auror  # use Auror's cluster algo to find important neural units in the layers, other options none|auror_plus
 GRAD_COLLECTION_START: 0   # when to start collecting grads 
-GRAD_COLLECT_FOR: -1   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
-CLUSTER_SEP: 0.02   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
-ALPHA: 0.8   # parameter for updating system trust vector
+GRAD_COLLECT_FOR: 20   #for how many fed rounds grads are collected, -1 means selected based on client_frac 
+CLUSTER_SEP: 0.01   # parameter for Auror's cluster algo, how much seperation between clusters to consider them important
+ALPHA: 0.6   # parameter for updating system trust vector
 BETA: 0.8    # parameter for updating system trust matrix
 GAMMA: 0.1   # decides how much initial trust worthy clients in the environment
 TRUST_INC: 2
-TRUST_CUT_METHOD: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
-HONEST_PARDON_FACTOR: 0.8 # it decides how much you want to pardon good clients getting bad trust values
-TRUST_MODIFY_STRATEGY: 0 # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
+TRUST_MODIFY_STRATEGY: 1  # 0 for using clustering method to segregate, 1 for using median, mean, std method, 2 for none
+HONEST_PARDON_FACTOR: 1.0 # it decides how much you want to pardon good clients getting bad trust values
+RESET_AXIS: False # for updating trust of assumed malicious clients , 0 for normal, 1 for resetting trust axis
+TRUST_SAMPLING: True # to fill matix by sampling
+TRUST_NORMALIZATION: False # to normalize trust values before filling in the matrix
 
 
-
-# LOG
-LOG_LEVEL: 'INFO' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
+# Other Settings
+LOG_LEVEL: 'ERROR' # To make logs based on logging level, DEBUG|INFO|WARNING|ERROR|CRITICAL
 JSON_RESULTS: True  # whether to save results, they are saved in json files for later visualization
+GEN_PLOTS: True # whehter to generate plot for experiment or not, this will also control generating plot dfs
+SAVE_HTML_PLOTS: False # whether to save interactive html plots or just png image plots.
 ```
 
 ## 5. Visualizing Results
 
 By default when _cos_defence_ mechanism is on it generates three type of plots:
 
-- Accuracy Poison Plot: Shows you total class accuracy (avg of all classes), poisoned class accuracy and poisoned data selected in that round.
+- Accuracy F1 Poison Plot: Shows you total class accuracy (avg of all classes), poisoned class accuracy and poisoned data selected in that round.
 - Trust Histogram Plot: Shows you how much trust honest and malicious(minor offender and major offender) client got during similarity calculations.
 - Trust Score Curves Plot: Shows how the trust score of different clients evolved during the training.
 
-When _cos_defence_ mechanism is off only Accuracy Poison Plot is generated.
-
-## 6. Interpreting Results
-
-Explain how to interpret the results.
-
-## 7. Findings
-
-Since the experiment involve random choices in many places like choosing initial validating clients, choosing clients that will be malicious and selecting clients in each round, the need to run an experiments multiple times becomes imperative to know reduce variation in results.
-Each experiment was run **10 times** in case of **mnist and fmnist** while for **cifar10 5 times** due to limited computation resources. The mean and std value of total class accuracy (avg of all) and poisioned class accuracy are given below.
+When _cos_defence_ mechanism is off only Accuracy F1 Poison Plot is generated.
