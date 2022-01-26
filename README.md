@@ -1,14 +1,17 @@
 # CosDefence: A defence mechanism against Data Poisoning attacks in Federated Learning (FL)
 
-This projects aims to develop a defence mechanism against data poisoning attacks in FL. It employs techniques like cosine similarity to check similarity between the clients, kmeans clustering to detect important neural connection and EigenTrust to score different clients.
+In this projects a novel defence mechanism called CosDefence against data poisoning attacks in FL was developed. It employs techniques like cosine similarity to check similarity between the clients, kmeans clustering to detect important neural connection and EigenTrust to keep track of trust scores of different clients.
 
 ## Overview
 
 1. Project Setup
 2. Project Structure
 3. Running A Basic Experiment
-4. Configuration Settings
-5. Visualizing Results
+4. Running Multiple Complex Experiments
+5. Running Experiments on RWTH HPC Cluster
+6. Configuration Settings
+7. Visualizing Results
+8. Further Improvements and Research Directions
 
 ## 1. Project Setup
 
@@ -17,29 +20,62 @@ To run this project mainly you need to intall python3 and PyTorch deep learning 
 ## 2. Project Structure
 
 - `config` folder contains configuration settings for different datasets.
-- `data` folder contains raw and federated data for 100 clients.
+- `data` folder contains raw and federated data for 100 clients. When you first clone this might be empty, you need to generate data using a data preparation script.
 - `federated_learning` folder contains main modules of this project like preparing data, running FL and visualizing results.
+- `notebooks` folder contain some notebooks to further analyse the summary results.
 - `logs` folder contains logs of the experiments.
-- `results` folder contains plots and results of the experiment as json files.
-- `run_scripts` contains script to run the experiments on rwth compute cluster.
+- `results` folder contains plots, plot_dfs and results of the experiment as json files.
+- `run_scripts` contains script to run the experiments on RWTH HPC compute cluster and log of those experiment.
 
 ## 3. Running A Basic Experiment
-
-In a terminal first go to `federated_learning` folder and then type the following command (assuming you already did the setup and activated the environment):
-
+There are two options (assuming you already did the setup and activated the environment):
+### A. Prepare data first:
+If you choose this option then you can create the federated data first for 5 or more distributions for the selected client data ratio (10:1, 4:1, 1:1). In config you can select the CLASS_RATIO:10 or 4 or 1.
+Run below instruction to prepare data for 5 distributions for each type of poisonous environments (0, 10, 20, 30, 40, 50, 60) and then run the experiment. Just keep the cofig setting CREATE_DATASET:False. It basically creates one distribution everytime if it's True.
 ```bash
+cd federated_learning/
+python3 prepare_data.py mnist_modified.yaml 5
+python3 run_config.py mnist_modified.yaml
+```
+### B. Not prepare data separately:
+If you don't want to create more distributions and just want to run experiment on single distribution, then in the config set CREATE_DATASET:True.
+And you can turn it False after running one time, if you want to test with random distribution everytime, keep it True and in the config set RANDOM_DATA:True. This will randomize image distribution and poisoning process of the clients.
+```bash
+cd federated_learning/
 python3 run_config.py mnist_default.yaml
 ```
-
-If you want to run a config file with different variations for comparison purposes, use the below command:
-
+## 4. Running Multiple Complex Experiments
+If you want to run a config file with different variations in the config for comparison purposes, use the _run_config_variations.py_ file.
 ```bash
+cd federated_learning/
 python3 run_config_variations.py mnist_default.yaml
 ```
 
-## 4. Configuration Settings
+## 5. Running Experiments on RWTH HPC Cluster
+- If you are in RWTH Network then you don't need VPN, otherwise first use RWTH VPN.
+- Then make one folder called _repos_ and copy/clone this project _CosDefence_ in that folder.
+- For first time you might need to run below commands in terminal, you might need to update version of different modules to the newer versions or according to hardware compatibility.
+```
+module load python/3.8.7
+pip3 install --user tensorboard
+pip3 install --user -U scikit-learn
+pip3 install --user plotly
+pip3 install --user -U kaleido
+pip3 install --user pyyaml
+pip3 install --user torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
+```
+- After installing these one time module, go to _run_scripts_ folder and use any of the scripts mnist_script.sh, fmnist_script.sh, cifar10_script.sh. These scripts contains instruction on how to run your batch job. Make sure the python module version you are loading in the script is same where you installed all the above packages like tensorboard, scikit-learn pytorch, plotly, pytorch etc. These commands are explained on RWTH HPC Cluster website also.
+- The two important commands in this file are below:
+```
+cd $HOME/repos/CosDefence/federated_learning
+python3 run_config_variations.py mnist_modified.yaml
+```
+- If you don't want to store the _CosDefence_ project in repos folder then change the location in this file also. The other command is to what experiments to be run on the batch. 
+- Change these script file variables according to the dataset and experiement numbers. For example in the case of mnist, fmnist, cifar10, a single experiment takes ~6, ~20, ~50 minutes respectively, so if you are running 5 experiments for fmnist give little more time than 100 minutes i.e.  02:00:00 . You can request different size mem-per-cpu, change job name, logs name, request gpu etc. You will be notified to the given mail ID if your job starts, ends, cancels etc.
 
-Let's look at one of the configuration files `mnist_default.yaml`
+## 6. Configuration Settings
+
+Let's look at one of the configuration files `mnist_modified.yaml`
 
 ```yaml
 # FL_DATA
@@ -93,12 +129,20 @@ GEN_PLOTS: True # whehter to generate plot for experiment or not, this will also
 SAVE_HTML_PLOTS: False # whether to save interactive html plots or just png image plots.
 ```
 
-## 5. Visualizing Results
+## 7. Visualizing Results
 
-By default when _cos_defence_ mechanism is on it generates three type of plots:
+By default when _CosDefence_ mechanism is on it generates three type of plots:
 
-- Accuracy F1 Poison Plot: Shows you total class accuracy (avg of all classes), poisoned class accuracy and poisoned data selected in that round.
-- Trust Histogram Plot: Shows you how much trust honest and malicious(minor offender and major offender) client got during similarity calculations.
+- Accuracy F1 Poison Plot: Shows you total class accuracy (avg of all classes), F1, poisoned class accuracy, F1 and poisoned data selected in that round.
+- Trust Histogram Plot: Shows you how much trust honest and malicious (minor offender and major offender) client got during similarity calculations.
 - Trust Score Curves Plot: Shows how the trust score of different clients evolved during the training.
 
-When _cos_defence_ mechanism is off only Accuracy F1 Poison Plot is generated.
+When _CosDefence_ mechanism is off only Accuracy F1 Poison Plot is generated.
+For further visualization use jupyter notebooks in the notebooks folder.
+
+## 8. Further Improvements and Research Directions
+- Running parallelized experiments.
+- Find better Hyper-parameter Tuning Strategy to find best value in less time.
+- Research on how Matrix and Vector can be updated in a better way.
+- Better Client Selection Strategy and better Feature Finding Algorithm.
+- Making code more modular, readable and configurable.
